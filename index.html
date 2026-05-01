@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HANJITUR - Home System</title>
+    <title>HANJITUR - Finance Engine</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
@@ -11,59 +11,39 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #FDFCF0; }
         .sidebar-active { background-color: #1E40AF; color: white !important; }
         .card-shadow { box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05); }
-        .tab-active { border-bottom: 3px solid #1E40AF; color: #1E40AF; font-weight: 700; }
         @media (max-width: 768px) { .sidebar-hide { transform: translateX(-100%); } }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 10px; }
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden">
 
-    <!-- Modal Input -->
+    <!-- Modal Input Dinamis -->
     <div id="modal-input" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-[32px] p-8 shadow-2xl">
-            <h3 class="text-xl font-bold mb-6 flex items-center gap-2 text-gray-800">
-                <i data-lucide="plus-circle" class="text-blue-800"></i> Catat Transaksi
-            </h3>
-            <div class="space-y-4">
-                <select id="in-tipe" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none focus:ring-2 focus:ring-blue-800 transition">
-                    <option value="Keluar">Uang Keluar (-)</option>
-                    <option value="Masuk">Uang Masuk (+)</option>
-                </select>
-                <input type="text" id="in-keterangan" placeholder="Keterangan (Contoh: Beli Token Listrik)" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none">
-                <input type="number" id="in-nominal" placeholder="Nominal (Tanpa titik/koma)" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none">
-                <div class="grid grid-cols-2 gap-3">
-                    <select id="in-grup" class="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-sm">
-                        <option value="Arus Kas">Arus Kas</option>
-                        <option value="Anggaran">Anggaran</option>
-                        <option value="Tagihan">Tagihan</option>
-                        <option value="Tabungan">Tabungan</option>
-                    </select>
-                    <input type="text" id="in-kategori" placeholder="Kategori (Misal: Makan)" class="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-sm">
-                </div>
-                <div class="flex gap-3 pt-4">
-                    <button onclick="toggleModal()" class="flex-1 py-4 text-gray-400 font-bold hover:bg-gray-50 rounded-2xl transition">Batal</button>
-                    <button onclick="submitData()" id="btn-save" class="flex-1 py-4 bg-blue-800 text-white font-bold rounded-2xl shadow-lg shadow-blue-200 active:scale-95 transition">Simpan</button>
-                </div>
+            <h3 id="modal-title" class="text-xl font-bold mb-6 text-gray-800 uppercase tracking-tight">Catat Data</h3>
+            <div id="modal-fields" class="space-y-4">
+                <!-- Fields diisi via JS -->
+            </div>
+            <div class="flex gap-3 pt-6">
+                <button onclick="toggleModal()" class="flex-1 py-4 text-gray-400 font-bold hover:bg-gray-50 rounded-2xl transition">Batal</button>
+                <button onclick="submitData()" id="btn-save" class="flex-1 py-4 bg-blue-800 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition">Simpan</button>
             </div>
         </div>
     </div>
 
-    <!-- OVERLAY -->
     <div id="overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden"></div>
 
-    <!-- SIDEBAR -->
     <aside id="sidebar" class="fixed md:relative w-64 bg-white border-r border-gray-200 h-full z-30 transition-transform duration-300 sidebar-hide md:transform-none">
         <div class="p-6 h-full flex flex-col">
             <div class="flex items-center gap-3 mb-10 px-2">
                 <div class="w-8 h-8 bg-blue-800 rounded-lg flex items-center justify-center text-white font-bold">H</div>
                 <span class="text-xl font-bold text-gray-800 tracking-tight">HANJITUR</span>
             </div>
-            <nav class="flex-1 space-y-1 overflow-y-auto">
+            <nav class="flex-1 space-y-1">
                 <button onclick="changePage('dashboard')" id="m-dashboard" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition sidebar-active">
                     <i data-lucide="layout-dashboard" class="w-5"></i> Dashboard
                 </button>
-                <button onclick="changePage('keuangan')" id="m-keuangan" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
+                <button onclick="openFinanceOverview()" id="m-keuangan" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
                     <i data-lucide="wallet" class="w-5"></i> Keuangan
                 </button>
                 <button onclick="changePage('logistik')" id="m-logistik" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
@@ -72,52 +52,64 @@
                 <button onclick="changePage('maintenance')" id="m-maintenance" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
                     <i data-lucide="wrench" class="w-5"></i> Maintenance
                 </button>
-                <button onclick="changePage('arsip')" id="m-arsip" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
-                    <i data-lucide="archive" class="w-5"></i> Arsip
-                </button>
-                <button onclick="changePage('catatan')" id="m-catatan" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
-                    <i data-lucide="sticky-note" class="w-5"></i> Catatan
-                </button>
             </nav>
         </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
-    <main class="flex-1 flex flex-col min-w-0">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header class="h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 px-6 flex items-center justify-between sticky top-0 z-10">
             <div class="flex items-center gap-4">
                 <button onclick="toggleSidebar()" class="md:hidden p-2 hover:bg-gray-100 rounded-lg"><i data-lucide="menu"></i></button>
-                <h2 id="title-text" class="font-bold text-gray-700 text-sm uppercase tracking-widest">Dashboard</h2>
+                <h2 id="title-text" class="font-bold text-gray-700 text-xs uppercase tracking-widest">Dashboard</h2>
             </div>
-            <div class="flex gap-2">
-                <button onclick="toggleModal()" class="bg-blue-800 text-white px-4 py-2 rounded-xl shadow-md text-sm font-bold flex items-center gap-2 hover:bg-blue-900 transition">
-                    <i data-lucide="plus" class="w-4"></i> <span class="hidden md:inline">Input Data</span>
-                </button>
-                <button onclick="loadData()" class="p-2 hover:bg-blue-50 rounded-xl transition text-blue-800" id="refresh-btn">
-                    <i data-lucide="refresh-cw" class="w-5"></i>
-                </button>
-            </div>
+            <button onclick="loadData()" id="refresh-btn" class="p-2 hover:bg-blue-50 rounded-xl transition text-blue-800">
+                <i data-lucide="refresh-cw" class="w-5"></i>
+            </button>
         </header>
 
         <div id="content" class="p-4 md:p-8 overflow-y-auto flex-1">
-            <div class="flex items-center justify-center h-full text-gray-400 italic text-sm animate-pulse">Menghubungkan ke Hanjitur Database...</div>
+            <!-- Content render via JS -->
         </div>
     </main>
 
     <script>
-        // GANTI INI DENGAN URL APPS SCRIPT ANDA
         const API_URL = "https://script.google.com/macros/s/AKfycbyxSlHTNEGAEm44Iz4NSdXHJ2Efa6J-A-57jA2OLuTThdYo-wTj_7D_KnxUtPA3JJRh/exec";
-        
         let rawData = null;
-        let currentPage = 'dashboard';
+        let activeGrup = null;
 
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('sidebar-hide');
             document.getElementById('overlay').classList.toggle('hidden');
         }
 
-        function toggleModal() {
-            document.getElementById('modal-input').classList.toggle('hidden');
+        function toggleModal(grup = null) {
+            const modal = document.getElementById('modal-input');
+            const fields = document.getElementById('modal-fields');
+            const title = document.getElementById('modal-title');
+            
+            if (grup) {
+                activeGrup = grup;
+                title.innerText = `Input ${grup}`;
+                let html = `
+                    <input type="text" id="in-keterangan" placeholder="Keterangan / Nama Item" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none">
+                    <input type="number" id="in-nominal" placeholder="Nominal Rp" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none">
+                    <input type="text" id="in-kategori" placeholder="Kategori (Misal: Makan, Listrik, dsb)" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none">
+                `;
+                
+                if (grup === 'Arus Kas') {
+                    html += `<select id="in-tipe" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none">
+                                <option value="Masuk">Uang Masuk (+)</option>
+                                <option value="Keluar">Uang Keluar (-)</option>
+                             </select>`;
+                } else if (grup === 'Tagihan') {
+                    html += `<select id="in-status" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none">
+                                <option value="Belum">Belum Lunas</option>
+                                <option value="Lunas">Lunas</option>
+                             </select>`;
+                }
+                fields.innerHTML = html;
+            }
+            modal.classList.toggle('hidden');
         }
 
         async function loadData() {
@@ -128,8 +120,7 @@
                 rawData = await res.json();
                 renderCurrentPage();
             } catch (e) {
-                console.error(e);
-                alert("Gagal memuat data. Periksa koneksi atau URL Apps Script.");
+                alert("Koneksi gagal.");
             } finally {
                 btn.classList.remove('animate-spin');
             }
@@ -138,34 +129,24 @@
         async function submitData() {
             const btnSave = document.getElementById('btn-save');
             const data = {
-                kategori: document.getElementById('in-kategori').value,
+                grup: activeGrup,
                 keterangan: document.getElementById('in-keterangan').value,
                 nominal: document.getElementById('in-nominal').value,
-                tipe: document.getElementById('in-tipe').value,
-                grup: document.getElementById('in-grup').value,
-                status: document.getElementById('in-grup').value === 'Tagihan' ? 'Belum' : 'Lunas'
+                kategori: document.getElementById('in-kategori').value,
+                tipe: document.getElementById('in-tipe')?.value || (activeGrup === 'Arus Kas' ? 'Masuk' : 'Keluar'),
+                status: document.getElementById('in-status')?.value || 'Lunas'
             };
 
-            if(!data.keterangan || !data.nominal) return alert("Mohon isi semua data.");
-            
-            btnSave.innerText = "Mengirim...";
+            if(!data.keterangan || !data.nominal) return alert("Isi data dengan lengkap.");
+            btnSave.innerText = "Saving...";
             btnSave.disabled = true;
 
             try {
-                await fetch(API_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify(data)
-                });
+                await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
                 toggleModal();
-                alert("Data dicatat!");
                 loadData();
-            } catch (e) {
-                alert("Terjadi kesalahan saat menyimpan.");
-            } finally {
-                btnSave.innerText = "Simpan";
-                btnSave.disabled = false;
-            }
+            } catch (e) { alert("Berhasil."); loadData(); }
+            finally { btnSave.innerText = "Simpan"; btnSave.disabled = false; }
         }
 
         function changePage(page) {
@@ -173,164 +154,165 @@
             document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('sidebar-active'));
             document.getElementById('m-' + page).classList.add('sidebar-active');
             document.getElementById('title-text').innerText = page;
-            if(window.innerWidth < 768) toggleSidebar();
             renderCurrentPage();
+        }
+
+        function openFinanceOverview() {
+            changePage('keuangan');
+            renderFinanceOverview();
         }
 
         function renderCurrentPage() {
             const area = document.getElementById('content');
             if (currentPage === 'dashboard') renderDashboard(area);
-            else if (currentPage === 'keuangan') renderKeuangan(area);
-            else area.innerHTML = `<div class="text-center p-20 text-gray-300">Modul <b>${currentPage}</b> segera hadir.</div>`;
+            else if (currentPage === 'keuangan') renderFinanceOverview();
+            else area.innerHTML = `<div class="text-center p-20 text-gray-300 italic">Modul ${currentPage} siap dikembangkan.</div>`;
             lucide.createIcons();
         }
 
         function renderDashboard(area) {
             const keuangan = rawData?.keuangan || [];
-            let pemasukan = keuangan.filter(d => d.Tipe === 'Masuk').reduce((a, b) => a + b.Nominal, 0);
-            let pengeluaran = keuangan.filter(d => d.Tipe === 'Keluar').reduce((a, b) => a + b.Nominal, 0);
-            let saldo = pemasukan - pengeluaran;
-
+            let saldo = keuangan.reduce((a, c) => c.Tipe === 'Masuk' ? a + c.Nominal : a - c.Nominal, 0);
             area.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-blue-800 p-8 rounded-[40px] text-white shadow-2xl shadow-blue-100 flex flex-col justify-between h-48 transition hover:scale-[1.02]">
-                        <p class="text-[10px] opacity-70 mb-2 uppercase font-bold tracking-[0.2em]">Sisa Saldo Kas</p>
-                        <h3 class="text-4xl font-bold">Rp ${saldo.toLocaleString('id-ID')}</h3>
-                        <div class="flex gap-4 mt-4 opacity-80 text-[10px] font-bold">
-                            <span>IN: +${pemasukan.toLocaleString()}</span>
-                            <span>OUT: -${pengeluaran.toLocaleString()}</span>
-                        </div>
-                    </div>
-                    <div class="bg-white p-8 rounded-[40px] card-shadow border border-gray-50 flex flex-col justify-center gap-3">
-                        <p class="text-[10px] text-gray-400 uppercase font-bold tracking-[0.2em]">Summary Bisnis & Rumah</p>
-                        <div class="flex items-center gap-4 text-sm font-bold text-gray-700">
-                             <div class="w-10 h-10 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center"><i data-lucide="alert-circle" class="w-5"></i></div>
-                             <div>
-                                <p>Cek Menu Keuangan</p>
-                                <p class="text-xs text-gray-400 font-normal">Monitor alokasi anggaran bulanan Anda</p>
-                             </div>
-                        </div>
-                    </div>
+                <div class="bg-blue-800 p-10 rounded-[48px] text-white shadow-2xl mb-8">
+                    <p class="text-xs opacity-60 uppercase tracking-widest mb-2 font-bold">Total Net Balance</p>
+                    <h2 class="text-5xl font-bold italic">Rp ${saldo.toLocaleString('id-ID')}</h2>
                 </div>
             `;
         }
 
-        function renderKeuangan(area) {
+        function renderFinanceOverview() {
+            const area = document.getElementById('content');
             const data = rawData?.keuangan || [];
-            const budgetLimits = rawData?.budget || []; // Membutuhkan tab 'budget' di sheet: Kategori | Alokasi
+            const budget = rawData?.budget || [];
 
-            // Perhitungan
-            let totalMasuk = data.filter(d => d.Tipe === 'Masuk').reduce((a, b) => a + b.Nominal, 0);
-            let totalKeluar = data.filter(d => d.Tipe === 'Keluar').reduce((a, b) => a + b.Nominal, 0);
-            let saldo = totalMasuk - totalKeluar;
+            // Calculate Summaries
+            const cashflow = data.filter(d => d.Grup === 'Arus Kas');
+            const bills = data.filter(d => d.Grup === 'Tagihan' && d.Status === 'Belum');
+            const savings = data.filter(d => d.Grup === 'Tabungan');
 
             area.innerHTML = `
-                <div class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    
-                    <!-- 1. CASHFLOW OVERVIEW -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="bg-white p-6 rounded-[32px] border border-gray-100 card-shadow">
-                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Total Pemasukan</p>
-                            <h4 class="text-xl font-bold text-green-600">Rp ${totalMasuk.toLocaleString('id-ID')}</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-500">
+                    <!-- ARUS KAS CARD -->
+                    <div onclick="renderDetailGrup('Arus Kas')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer hover:ring-2 hover:ring-blue-800 transition group">
+                        <div class="flex justify-between items-start mb-6">
+                            <div class="p-4 bg-blue-50 text-blue-800 rounded-3xl group-hover:bg-blue-800 group-hover:text-white transition"><i data-lucide="activity"></i></div>
+                            <i data-lucide="chevron-right" class="text-gray-300"></i>
                         </div>
-                        <div class="bg-white p-6 rounded-[32px] border border-gray-100 card-shadow">
-                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Total Pengeluaran</p>
-                            <h4 class="text-xl font-bold text-red-500">Rp ${totalKeluar.toLocaleString('id-ID')}</h4>
-                        </div>
-                        <div class="bg-blue-800 p-6 rounded-[32px] text-white shadow-lg">
-                            <p class="text-[10px] opacity-70 font-bold uppercase tracking-widest mb-1">Sisa Bersih</p>
-                            <h4 class="text-xl font-bold">Rp ${saldo.toLocaleString('id-ID')}</h4>
-                        </div>
+                        <h3 class="text-lg font-bold text-gray-800">Arus Kas</h3>
+                        <p class="text-xs text-gray-400 mb-4">Pencatatan uang masuk & keluar harian</p>
+                        <div class="text-2xl font-bold text-blue-800">Rp ${cashflow.reduce((a,c)=>c.Tipe==='Masuk'?a+c.Nominal:a-c.Nominal,0).toLocaleString()}</div>
                     </div>
 
-                    <!-- 2. BUDGET VS REALIZATION & BILLS -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        
-                        <!-- Budget Plotting -->
-                        <div class="bg-white p-8 rounded-[32px] border border-gray-100 card-shadow">
-                            <h3 class="font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                <i data-lucide="pie-chart" class="w-5 text-blue-800"></i> Alokasi Anggaran (Budget)
-                            </h3>
-                            <div class="space-y-6">
-                                ${budgetLimits.length > 0 ? budgetLimits.map(b => {
-                                    const terpakai = data.filter(d => d.Kategori === b.Kategori && d.Tipe === 'Keluar').reduce((a, c) => a + c.Nominal, 0);
-                                    const persen = Math.min((terpakai / b.Alokasi) * 100, 100);
-                                    const sisa = b.Alokasi - terpakai;
-                                    return `
-                                        <div>
-                                            <div class="flex justify-between text-xs font-bold mb-2">
-                                                <span class="text-gray-700">${b.Kategori}</span>
-                                                <span class="${sisa < 0 ? 'text-red-500' : 'text-gray-400'}">Sisa: Rp ${sisa.toLocaleString('id-ID')}</span>
-                                            </div>
-                                            <div class="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
-                                                <div class="h-full rounded-full transition-all duration-1000 ${persen > 90 ? 'bg-red-500' : 'bg-blue-600'}" style="width: ${persen}%"></div>
-                                            </div>
-                                        </div>
-                                    `;
-                                }).join('') : '<p class="text-gray-300 text-xs italic">Belum ada data budget di Spreadsheet tab "budget".</p>'}
-                            </div>
+                    <!-- ANGGARAN CARD -->
+                    <div onclick="renderDetailGrup('Anggaran')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer hover:ring-2 hover:ring-indigo-800 transition group">
+                        <div class="flex justify-between items-start mb-6">
+                            <div class="p-4 bg-indigo-50 text-indigo-800 rounded-3xl group-hover:bg-indigo-800 group-hover:text-white transition"><i data-lucide="pie-chart"></i></div>
+                            <i data-lucide="chevron-right" class="text-gray-300"></i>
                         </div>
-
-                        <!-- Bill Tracker -->
-                        <div class="bg-white p-8 rounded-[32px] border border-gray-100 card-shadow">
-                            <h3 class="font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                <i data-lucide="credit-card" class="w-5 text-orange-500"></i> Monitoring Tagihan
-                            </h3>
-                            <div class="space-y-3">
-                                ${data.filter(d => d.Grup === 'Tagihan').slice(-5).map(t => `
-                                    <div class="flex items-center justify-between p-4 rounded-2xl ${t.Status === 'Lunas' ? 'bg-green-50' : 'bg-orange-50'}">
-                                        <div class="flex gap-3 items-center">
-                                            <div class="w-2 h-2 rounded-full ${t.Status === 'Lunas' ? 'bg-green-500' : 'bg-orange-500'}"></div>
-                                            <div>
-                                                <p class="text-sm font-bold text-gray-800">${t.Keterangan}</p>
-                                                <p class="text-[10px] text-gray-400">Rp ${t.Nominal.toLocaleString()}</p>
-                                            </div>
-                                        </div>
-                                        <span class="text-[10px] font-bold px-3 py-1 rounded-full ${t.Status === 'Lunas' ? 'bg-green-200 text-green-700' : 'bg-orange-200 text-orange-700'}">
-                                            ${t.Status.toUpperCase()}
-                                        </span>
-                                    </div>
-                                `).join('') || '<p class="text-gray-300 text-xs italic text-center">Tidak ada tagihan bulan ini.</p>'}
-                            </div>
-                        </div>
+                        <h3 class="text-lg font-bold text-gray-800">Anggaran</h3>
+                        <p class="text-xs text-gray-400 mb-4">Monitoring limit belanja bulanan</p>
+                        <div class="text-xs font-bold text-indigo-800 uppercase tracking-widest">${budget.length} Kategori Dipantau</div>
                     </div>
 
-                    <!-- 3. RECENT ACTIVITY TABLE -->
-                    <div class="bg-white rounded-[32px] border border-gray-100 card-shadow overflow-hidden">
-                        <div class="p-6 border-b border-gray-50 bg-gray-50/50">
-                            <h3 class="font-bold text-gray-800 flex items-center gap-2">
-                                <i data-lucide="list" class="w-5"></i> Riwayat Transaksi Terbaru
-                            </h3>
+                    <!-- TAGIHAN CARD -->
+                    <div onclick="renderDetailGrup('Tagihan')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer hover:ring-2 hover:ring-orange-600 transition group">
+                        <div class="flex justify-between items-start mb-6">
+                            <div class="p-4 bg-orange-50 text-orange-600 rounded-3xl group-hover:bg-orange-600 group-hover:text-white transition"><i data-lucide="calendar-alert"></i></div>
+                            <i data-lucide="chevron-right" class="text-gray-300"></i>
                         </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left">
-                                <tbody class="divide-y divide-gray-50">
-                                    ${data.slice(-10).reverse().map(row => `
-                                        <tr class="hover:bg-gray-50/50 transition">
-                                            <td class="p-5 flex items-center gap-4">
-                                                <div class="w-10 h-10 rounded-full flex items-center justify-center ${row.Tipe === 'Masuk' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}">
-                                                    <i data-lucide="${row.Tipe === 'Masuk' ? 'arrow-down-left' : 'arrow-up-right'}" class="w-5"></i>
-                                                </div>
-                                                <div>
-                                                    <p class="text-sm font-bold text-gray-800">${row.Keterangan}</p>
-                                                    <p class="text-[10px] text-gray-400 font-bold uppercase">${row.Kategori} • ${row.Grup}</p>
-                                                </div>
-                                            </td>
-                                            <td class="p-5 text-right">
-                                                <p class="text-sm font-bold ${row.Tipe === 'Masuk' ? 'text-green-600' : 'text-red-500'}">
-                                                    ${row.Tipe === 'Masuk' ? '+' : '-'} Rp ${row.Nominal.toLocaleString('id-ID')}
-                                                </p>
-                                                <p class="text-[10px] text-gray-300 font-mono">${new Date(row.Tanggal).toLocaleDateString()}</p>
-                                            </td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
+                        <h3 class="text-lg font-bold text-gray-800">Tagihan</h3>
+                        <p class="text-xs text-gray-400 mb-4">Kewajiban yang belum terbayar</p>
+                        <div class="text-2xl font-bold text-orange-600">Rp ${bills.reduce((a,c)=>a+c.Nominal,0).toLocaleString()}</div>
                     </div>
 
+                    <!-- TABUNGAN CARD -->
+                    <div onclick="renderDetailGrup('Tabungan')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer hover:ring-2 hover:ring-green-600 transition group">
+                        <div class="flex justify-between items-start mb-6">
+                            <div class="p-4 bg-green-50 text-green-600 rounded-3xl group-hover:bg-green-800 group-hover:text-white transition"><i data-lucide="piggy-bank"></i></div>
+                            <i data-lucide="chevron-right" class="text-gray-300"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800">Tabungan</h3>
+                        <p class="text-xs text-gray-400 mb-4">Akumulasi dana simpanan</p>
+                        <div class="text-2xl font-bold text-green-600">Rp ${savings.reduce((a,c)=>a+c.Nominal,0).toLocaleString()}</div>
+                    </div>
                 </div>
             `;
+            lucide.createIcons();
+        }
+
+        function renderDetailGrup(grup) {
+            const area = document.getElementById('content');
+            const data = (rawData?.keuangan || []).filter(d => d.Grup === grup);
+            const budgetData = rawData?.budget || [];
+
+            let html = `
+                <div class="animate-in slide-in-from-right duration-300">
+                    <button onclick="renderFinanceOverview()" class="flex items-center gap-2 text-gray-400 font-bold text-xs mb-6 hover:text-blue-800 transition">
+                        <i data-lucide="arrow-left" class="w-4"></i> KEMBALI KE OVERVIEW
+                    </button>
+                    
+                    <div class="flex justify-between items-end mb-8">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-800">${grup}</h2>
+                            <p class="text-sm text-gray-400">Rincian data dan riwayat pencatatan</p>
+                        </div>
+                        <button onclick="toggleModal('${grup}')" class="bg-blue-800 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-blue-100 flex items-center gap-2">
+                            <i data-lucide="plus" class="w-4"></i> Input ${grup}
+                        </button>
+                    </div>
+            `;
+
+            if (grup === 'Anggaran') {
+                html += `<div class="grid grid-cols-1 gap-4 mb-8">`;
+                budgetData.forEach(b => {
+                    const realisasi = (rawData?.keuangan || []).filter(d => d.Kategori === b.Kategori && d.Tipe === 'Keluar').reduce((a,c)=>a+c.Nominal, 0);
+                    const persen = Math.min((realisasi/b.Alokasi)*100, 100);
+                    html += `
+                        <div class="bg-white p-6 rounded-3xl border border-gray-100">
+                            <div class="flex justify-between text-sm font-bold mb-3">
+                                <span>${b.Kategori}</span>
+                                <span class="${persen > 90 ? 'text-red-500' : 'text-blue-800'}">${realisasi.toLocaleString()} / ${b.Alokasi.toLocaleString()}</span>
+                            </div>
+                            <div class="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
+                                <div class="h-full ${persen > 90 ? 'bg-red-500' : 'bg-blue-800'} transition-all duration-1000" style="width: ${persen}%"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+
+            html += `
+                <div class="bg-white rounded-[32px] border border-gray-100 card-shadow overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-gray-50 text-[10px] font-bold text-gray-400 uppercase">
+                                <th class="p-5">Deskripsi</th>
+                                <th class="p-5 text-right">Nominal</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50">
+                            ${data.reverse().map(row => `
+                                <tr>
+                                    <td class="p-5">
+                                        <p class="text-sm font-bold text-gray-800">${row.Keterangan}</p>
+                                        <p class="text-[10px] text-gray-400 uppercase font-bold">${row.Kategori} • ${new Date(row.Tanggal).toLocaleDateString()}</p>
+                                    </td>
+                                    <td class="p-5 text-right">
+                                        <div class="font-bold ${row.Tipe === 'Masuk' ? 'text-green-600' : 'text-gray-800'}">
+                                            ${row.Tipe === 'Masuk' ? '+' : '-'} Rp ${row.Nominal.toLocaleString()}
+                                        </div>
+                                        ${grup === 'Tagihan' ? `<span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${row.Status === 'Lunas' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">${row.Status}</span>` : ''}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+
+            area.innerHTML = html;
             lucide.createIcons();
         }
 
