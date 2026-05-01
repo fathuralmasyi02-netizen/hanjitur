@@ -3,262 +3,262 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HANJITUR Engine v3.0</title>
-    
-    <!-- Link Logo Custom dari Google Drive -->
-    <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/d/1H1JqgBcdkbUg0rmO022wDCospnxkDArF">
-    <link rel="apple-touch-icon" href="https://lh3.googleusercontent.com/d/1H1JqgBcdkbUg0rmO022wDCospnxkDArF">
-    
+    <title>HANJITUR | Private App</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #FDFCF0; margin: 0; }
-        .sidebar-active { background-color: #1E40AF; color: white !important; }
-        .app-container { height: 100vh; display: flex; overflow: hidden; }
-        .main-content { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
-        .scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; padding-bottom: 100px; }
-        @media (max-width: 768px) { 
-            .sidebar-hide { transform: translateX(-100%); }
-            .app-container { display: block; height: auto; overflow: visible; }
-            .main-content { height: 100vh; display: flex; }
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#4B3832', 'secondary': '#854442', 'accent': '#BE9B7B', 'base': '#FFF4E6'
+                    }
+                }
+            }
         }
+    </script>
+
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #FFF4E6; }
+        .welcome-screen {
+            background: linear-gradient(rgba(75, 56, 50, 0.7), rgba(75, 56, 50, 0.7)), 
+                        url('https://lh3.googleusercontent.com/d/1Xwzd9S_wuNBv40AFeSORQsdd6JfZAwHp');
+            background-size: cover; background-position: center;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
     </style>
 </head>
-<body class="app-container">
+<body class="overflow-hidden">
 
-    <!-- Modal Input Universal -->
-    <div id="modal-input" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-[32px] p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
-            <h3 id="modal-title" class="text-xl font-bold mb-6 text-gray-800 uppercase tracking-tight italic">Input Data</h3>
-            <div id="modal-fields" class="space-y-4"></div>
-            <div class="flex gap-3 pt-6">
-                <button onclick="toggleModal()" class="flex-1 py-4 text-gray-400 font-bold hover:bg-gray-50 rounded-2xl">Batal</button>
-                <button onclick="submitData()" id="btn-save" class="flex-1 py-4 bg-blue-800 text-white font-bold rounded-2xl shadow-lg">Simpan</button>
-            </div>
-        </div>
+    <!-- LOADING SPINNER -->
+    <div id="loader" class="fixed inset-0 z-[200] bg-base flex items-center justify-center hidden">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-primary"></div>
     </div>
 
-    <div id="overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden"></div>
+    <!-- WELCOME SCREEN -->
+    <div id="welcome" class="fixed inset-0 z-[100] welcome-screen flex flex-col items-center justify-center text-white text-center p-6">
+        <h1 class="text-5xl font-bold mb-2 italic tracking-tighter">Hanjitur</h1>
+        <p class="text-lg opacity-90 mb-8 font-light">Satu Ruang Untuk Berdua</p>
+        <button onclick="startApp()" class="px-8 py-3 bg-white text-primary font-bold rounded-full shadow-xl hover:scale-105 transition-transform">
+            Masuk Sekarang
+        </button>
+    </div>
 
-    <!-- Sidebar -->
-    <aside id="sidebar" class="fixed md:relative w-64 bg-white border-r border-gray-200 h-full z-30 transition-transform duration-300 sidebar-hide md:transform-none">
-        <div class="p-6 h-full flex flex-col">
-            <div class="flex items-center gap-3 mb-8 px-2">
-                <!-- Ikon Logo di Sidebar -->
-                <img src="https://lh3.googleusercontent.com/d/1H1JqgBcdkbUg0rmO022wDCospnxkDArF" class="w-8 h-8 rounded-lg object-cover shadow-sm">
-                <span class="text-xl font-bold text-gray-800 tracking-tight">HANJITUR</span>
+    <!-- MAIN APP -->
+    <div id="app" class="hidden h-screen flex overflow-hidden">
+        
+        <!-- SIDEBAR -->
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-primary text-base transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 flex flex-col">
+            <div class="p-8">
+                <h2 class="text-2xl font-bold italic">HANJITUR</h2>
+                <p class="text-[10px] opacity-50 tracking-[0.3em] uppercase">Private Space</p>
             </div>
-            <nav class="flex-1 space-y-1">
-                <button onclick="nav('dashboard')" id="m-dashboard" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition sidebar-active">
-                    <i data-lucide="layout-dashboard" class="w-5"></i> Dashboard
+            
+            <nav class="flex-1 px-4 space-y-2 overflow-y-auto hide-scrollbar">
+                <button onclick="nav('Dashboard')" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/10" id="btn-Dashboard">
+                    <i data-lucide="layout-grid" class="w-5"></i> Dashboard
                 </button>
-                <button onclick="nav('pernikahan')" id="m-pernikahan" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
-                    <i data-lucide="heart" class="w-5 text-rose-500"></i> Pernikahan
+                <button onclick="nav('Pernikahan')" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/10" id="btn-Pernikahan">
+                    <i data-lucide="heart" class="w-5"></i> Pernikahan
                 </button>
-                <button onclick="nav('keuangan')" id="m-keuangan" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
+                <button onclick="nav('Keuangan')" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/10" id="btn-Keuangan">
                     <i data-lucide="wallet" class="w-5"></i> Keuangan
                 </button>
+                <button onclick="nav('Logistik')" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/10" id="btn-Logistik">
+                    <i data-lucide="package" class="w-5"></i> Logistik
+                </button>
+                <button onclick="nav('Maintenance')" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/10" id="btn-Maintenance">
+                    <i data-lucide="wrench" class="w-5"></i> Maintenance
+                </button>
+                <button onclick="nav('Catatan')" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/10" id="btn-Catatan">
+                    <i data-lucide="sticky-note" class="w-5"></i> Catatan
+                </button>
             </nav>
-        </div>
-    </aside>
+        </aside>
 
-    <div class="main-content">
-        <header class="h-16 bg-white border-b border-gray-100 px-6 flex items-center justify-between shrink-0">
-            <div class="flex items-center gap-4">
-                <button onclick="toggleSidebar()" class="md:hidden p-2 hover:bg-gray-100 rounded-lg"><i data-lucide="menu"></i></button>
-                <h2 id="title-text" class="font-bold text-gray-700 text-[10px] uppercase tracking-[0.2em]">Dashboard</h2>
+        <!-- CONTENT AREA -->
+        <main class="flex-1 flex flex-col min-w-0 relative">
+            <header class="h-16 flex items-center justify-between px-6 bg-white/50 border-b border-primary/5 backdrop-blur-md">
+                <button onclick="toggleSidebar()" class="md:hidden p-2 text-primary"><i data-lucide="menu"></i></button>
+                <h2 id="page-title" class="font-bold text-primary uppercase tracking-widest text-sm">Dashboard</h2>
+                <button onclick="refreshData()" class="p-2 text-primary" id="refresh-icon"><i data-lucide="refresh-cw" class="w-5"></i></button>
+            </header>
+
+            <div id="content" class="flex-1 overflow-y-auto p-4 md:p-8 hide-scrollbar"></div>
+        </main>
+    </div>
+
+    <!-- MODAL -->
+    <div id="modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-lg rounded-[32px] p-8 shadow-2xl">
+            <h3 id="modal-title" class="text-xl font-bold text-primary mb-6">Tambah Data</h3>
+            <div id="modal-body" class="space-y-4"></div>
+            <div class="flex gap-3 mt-8">
+                <button onclick="closeModal()" class="flex-1 py-3 text-gray-400 font-bold">Batal</button>
+                <button id="btn-save" onclick="saveData()" class="flex-1 py-3 bg-primary text-white font-bold rounded-2xl">Simpan</button>
             </div>
-            <button onclick="loadData()" id="refresh-btn" class="p-2 hover:bg-blue-50 rounded-xl transition text-blue-800">
-                <i data-lucide="refresh-cw" class="w-5"></i>
-            </button>
-        </header>
-        
-        <div id="content" class="scroll-area p-4 md:p-8"></div>
+        </div>
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbxsE8ggPnpB7Lq2WNx-ttvfPz7HyL3Iv8ehiokW8gzgVWkuD4TOSZbTQz7cDyaMlJuI/exec"; 
+        // GANTI LINK DI BAWAH INI DENGAN LINK WEB APP KAMU
+        const API_URL = "https://script.google.com/macros/s/AKfycbzbOP2k_L14sVuFiXxb6lrrmP8dBcR4lXeKw3EdBILCXz45IK2coDalOIMuhfKcGC_E/exec";
         
-        let rawData = { keuangan: [], wedding_stats: { progress: 0, countdown: 0 } }; 
-        let currentPage = 'dashboard';
-        let currentSubPage = null;
+        let allData = {};
+        let activeMenu = 'Dashboard';
+        let activeSub = '';
 
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('sidebar-hide');
-            document.getElementById('overlay').classList.toggle('hidden');
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); }
+
+        function startApp() {
+            document.getElementById('welcome').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            refreshData();
         }
 
-        function nav(page) {
-            currentPage = page;
-            currentSubPage = null;
-            if (window.innerWidth < 768) toggleSidebar();
-            document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('sidebar-active'));
-            document.getElementById('m-' + page)?.classList.add('sidebar-active');
-            document.getElementById('title-text').innerText = page;
-            render();
-        }
-
-        async function loadData() {
-            const btn = document.getElementById('refresh-btn');
-            btn?.classList.add('animate-spin');
+        async function refreshData() {
+            const icon = document.getElementById('refresh-icon');
+            icon.classList.add('animate-spin');
             try {
                 const res = await fetch(API_URL);
-                rawData = await res.json();
+                allData = await res.json();
                 render();
-            } catch (e) { console.error(e); }
-            finally { btn?.classList.remove('animate-spin'); lucide.createIcons(); }
-        }
-
-        function render() {
-            const area = document.getElementById('content');
-            area.scrollTop = 0;
-            if (currentPage === 'dashboard') renderDashboard(area);
-            else if (currentPage === 'pernikahan') {
-                if (currentSubPage) renderWeddingDetail(area, currentSubPage);
-                else renderWeddingMain(area);
-            }
-            else if (currentPage === 'keuangan') {
-                if (currentSubPage) renderFinanceDetail(area, currentSubPage);
-                else renderFinanceMain(area);
-            }
+            } catch (e) { alert("Koneksi gagal!"); }
+            icon.classList.remove('animate-spin');
             lucide.createIcons();
         }
 
-        function renderDashboard(area) {
-            const db = rawData.keuangan || [];
-            const stats = rawData.wedding_stats || { progress: 0, countdown: 0 };
-            const totalMasuk = db.filter(d => d.Tipe === 'Masuk').reduce((a,c) => a + Number(c.Nominal || 0), 0);
-            const totalKeluar = db.filter(d => d.Tipe === 'Keluar').reduce((a,c) => a + Number(c.Nominal || 0), 0);
-            const saldo = totalMasuk - totalKeluar;
+        function nav(menu, sub = '') {
+            activeMenu = menu; activeSub = sub;
+            document.getElementById('page-title').innerText = sub || menu;
+            if(window.innerWidth < 768 && !sub) toggleSidebar();
+            render();
+        }
 
-            area.innerHTML = `
-                <div class="bg-blue-900 p-8 rounded-[40px] text-white shadow-2xl mb-8 relative overflow-hidden">
-                    <p class="text-[10px] opacity-60 uppercase font-bold mb-2 tracking-widest">Saldo Gabungan</p>
-                    <h2 class="text-4xl font-bold italic">Rp ${saldo.toLocaleString('id-ID')}</h2>
-                    <i data-lucide="wallet" class="absolute right-[-10px] bottom-[-10px] w-32 h-32 opacity-10"></i>
+        function render() {
+            const c = document.getElementById('content');
+            c.innerHTML = '';
+            if (activeMenu === 'Dashboard') renderDashboard(c);
+            else if (activeMenu === 'Keuangan') renderKeuangan(c);
+            else if (activeMenu === 'Catatan') renderCatatan(c);
+            else if (activeMenu === 'Pernikahan' && !activeSub) renderPernikahanMenu(c);
+            else renderTable(c);
+            lucide.createIcons();
+        }
+
+        function renderDashboard(c) {
+            const s = allData.stats || {wedding_days:0, wedding_progress:0, today: ''};
+            c.innerHTML = `
+                <div class="mb-8">
+                    <p class="text-primary/60 font-bold uppercase text-[10px] tracking-widest">${s.today}</p>
+                    <h1 class="text-3xl font-bold text-primary italic">Halo, Hanji & Pasangan!</h1>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
-                        <p class="text-[10px] text-rose-500 font-bold uppercase mb-2 tracking-widest">Wedding Countdown</p>
-                        <h3 class="text-4xl font-bold text-gray-800">${stats.countdown} <span class="text-xs italic font-normal">Hari Lagi</span></h3>
+                    <div class="bg-primary p-8 rounded-[40px] text-white shadow-xl">
+                        <p class="text-xs opacity-60 uppercase mb-1">Wedding Countdown</p>
+                        <h2 class="text-5xl font-bold">${s.wedding_days} <span class="text-lg font-light">Hari lagi</span></h2>
                     </div>
-                    <div class="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
-                        <p class="text-[10px] text-green-500 font-bold uppercase mb-2 tracking-widest">Persiapan</p>
-                        <h3 class="text-4xl font-bold text-gray-800">${stats.progress}%</h3>
+                    <div class="bg-accent p-8 rounded-[40px] text-primary shadow-lg">
+                        <p class="text-xs opacity-60 uppercase mb-1">Progress Persiapan</p>
+                        <h2 class="text-5xl font-bold">${s.wedding_progress}%</h2>
                     </div>
                 </div>
             `;
         }
 
-        function renderWeddingMain(area) {
-            const menus = [
-                { id: 'wedding_todo', label: 'Daftar Tugas', icon: 'list-todo' },
-                { id: 'wedding_budget', label: 'Anggaran', icon: 'banknote' },
-                { id: 'wedding_vendors', label: 'Vendor', icon: 'users' },
-                { id: 'wedding_guests', label: 'Tamu', icon: 'user-plus' }
-            ];
-            area.innerHTML = `<div class="grid grid-cols-2 gap-4">${menus.map(m => `
-                <div onclick="currentSubPage='${m.id}'; render()" class="bg-white p-8 rounded-[32px] shadow-sm border border-gray-50 text-center hover:border-rose-300 transition-all cursor-pointer">
-                    <div class="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500 mx-auto mb-3"><i data-lucide="${m.icon}"></i></div>
-                    <p class="text-xs font-bold text-gray-700 uppercase tracking-tighter">${m.label}</p>
-                </div>`).join('')}</div>`;
+        function renderPernikahanMenu(c) {
+            const subs = ['Daftar Tugas', 'Anggaran', 'Vendor', 'Tamu'];
+            c.innerHTML = `<div class="grid grid-cols-2 gap-4">
+                ${subs.map(s => `<button onclick="nav('Pernikahan', '${s}')" class="bg-white p-8 rounded-[32px] shadow-sm border border-primary/5 font-bold text-primary">${s}</button>`).join('')}
+            </div>`;
         }
 
-        function renderWeddingDetail(area, id) {
-            const items = rawData[id] || [];
-            area.innerHTML = `
-                <button onclick="currentSubPage=null; render()" class="text-[10px] font-bold text-gray-400 mb-6 flex items-center gap-2 uppercase tracking-widest"><i data-lucide="arrow-left" class="w-3"></i> Kembali</button>
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800 uppercase italic">${id.replace('wedding_',' ')}</h2>
-                    <button onclick="toggleModal('${id}')" class="bg-rose-500 text-white px-6 py-3 rounded-2xl font-bold shadow-lg">+ Tambah</button>
-                </div>
-                <div class="space-y-3">${items.length ? items.map(item => `
-                    <div class="bg-white p-5 rounded-3xl shadow-sm border border-gray-50 flex justify-between items-center">
-                        <div><p class="font-bold text-gray-800">${item.Tugas || item.Nama || item.Item || 'Data'}</p><p class="text-[10px] text-gray-400 uppercase">${item.Deadline || item.Status || ''}</p></div>
-                    </div>`).join('') : '<p class="text-center py-20 text-gray-300 italic">Belum ada data</p>'}</div>`;
-        }
+        function renderKeuangan(c) {
+            const data = allData['keuangan'] || [];
+            const masuk = data.filter(k => k.Tipe === 'Masuk').reduce((a, b) => a + Number(b.Nominal), 0);
+            const keluar = data.filter(k => k.Tipe === 'Keluar').reduce((a, b) => a + Number(b.Nominal), 0);
+            const saldo = masuk - keluar;
 
-        function renderFinanceMain(area) {
-            area.innerHTML = `
-                <div class="space-y-4">
-                    <div onclick="currentSubPage='Arus Kas'; render()" class="bg-white p-8 rounded-[32px] border border-gray-50 shadow-sm cursor-pointer hover:border-blue-500 transition-all">
-                        <div class="flex justify-between items-center"><h3 class="font-bold text-gray-800 italic">ARUS KAS</h3><i data-lucide="chevron-right" class="text-gray-300"></i></div>
-                        <p class="text-[10px] text-blue-500 font-bold uppercase mt-1">Kelola Pemasukan & Pengeluaran</p>
+            if(!activeSub) {
+                c.innerHTML = `
+                    <div class="bg-white p-8 rounded-[40px] shadow-sm mb-6 border border-primary/5">
+                        <p class="text-[10px] uppercase font-bold text-primary/40 mb-2">Total Saldo Gabungan</p>
+                        <h2 class="text-4xl font-bold text-primary italic">Rp ${saldo.toLocaleString('id-ID')}</h2>
                     </div>
-                    <div onclick="currentSubPage='Tabungan'; render()" class="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm cursor-pointer hover:border-green-500 transition-all">
-                        <div class="flex justify-between items-center"><h3 class="font-bold text-gray-800 italic">TABUNGAN</h3><i data-lucide="chevron-right" class="text-gray-300"></i></div>
-                        <p class="text-[10px] text-green-500 font-bold uppercase mt-1">Monitor Dana Simpanan</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="nav('Keuangan', 'Arus Kas')" class="bg-white p-6 rounded-[32px] shadow-sm font-bold">Arus Kas</button>
+                        <button onclick="nav('Keuangan', 'Tabungan')" class="bg-white p-6 rounded-[32px] shadow-sm font-bold">Tabungan</button>
                     </div>
-                </div>`;
+                `;
+            } else { renderTable(c); }
         }
 
-        function renderFinanceDetail(area, grup) {
-            const items = (rawData.keuangan || []).filter(d => d.Grup === grup);
-            area.innerHTML = `
-                <button onclick="currentSubPage=null; render()" class="text-[10px] font-bold text-gray-400 mb-6 flex items-center gap-2 uppercase tracking-widest"><i data-lucide="arrow-left" class="w-3"></i> Kembali</button>
+        function renderTable(c) {
+            let sn = activeSub === 'Daftar Tugas' ? 'wedding_todo' : 
+                     activeSub === 'Anggaran' ? 'wedding_budget' :
+                     activeSub === 'Arus Kas' ? 'keuangan' : activeMenu;
+            
+            const data = allData[sn] || [];
+            c.innerHTML = `
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800 uppercase italic">${grup}</h2>
-                    <button onclick="toggleModal('${grup}')" class="bg-blue-800 text-white px-6 py-3 rounded-2xl font-bold shadow-lg">+ Tambah</button>
+                    <button onclick="nav('${activeMenu}')" class="text-primary font-bold text-xs flex items-center gap-1"><i data-lucide="arrow-left" class="w-4"></i> Kembali</button>
+                    <button onclick="openModal('${sn}')" class="bg-primary text-white px-6 py-2 rounded-xl text-xs font-bold">+ Tambah</button>
                 </div>
-                <div class="space-y-3">${items.reverse().map(item => `
-                    <div class="bg-white p-5 rounded-3xl border border-gray-50 shadow-sm flex justify-between items-center">
-                        <div>
-                            <p class="text-[10px] font-bold text-blue-500 uppercase mb-0.5">${item.Kategori}</p>
-                            <p class="font-bold text-gray-800">${item.Keterangan}</p>
-                        </div>
-                        <p class="font-bold ${item.Tipe === 'Masuk' ? 'text-green-600' : 'text-red-500'}">
-                            ${item.Tipe === 'Masuk' ? '+' : '-'} Rp ${Number(item.Nominal).toLocaleString()}
-                        </p>
-                    </div>`).join('')}</div>`;
+                <div class="bg-white rounded-[32px] overflow-x-auto shadow-sm border border-primary/5">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-primary/5 text-[10px] uppercase text-primary tracking-widest">
+                            <tr>${Object.keys(data[0] || {Data:'Kosong'}).map(h => `<th class="p-4">${h}</th>`).join('')}</tr>
+                        </thead>
+                        <tbody class="divide-y divide-primary/5">
+                            ${data.map(row => `<tr>${Object.values(row).map(v => `<td class="p-4">${v}</td>`).join('')}</tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
         }
 
-        function toggleModal(target = null) {
-            const m = document.getElementById('modal-input');
-            if (target) {
-                currentSubPage = target;
-                const fields = document.getElementById('modal-fields');
-                if (target === 'Arus Kas' || target === 'Tabungan') {
-                    fields.innerHTML = `
-                        <input type="text" id="f-keterangan" placeholder="Keterangan" class="w-full p-4 bg-gray-50 rounded-2xl border-none outline-none">
-                        <input type="number" id="f-nominal" placeholder="Nominal Rp" class="w-full p-4 bg-gray-50 rounded-2xl border-none outline-none">
-                        <select id="f-tipe" class="w-full p-4 bg-gray-50 rounded-2xl border-none outline-none">
-                            <option value="Keluar">Uang Keluar</option>
-                            <option value="Masuk">Uang Masuk</option>
-                        </select>
-                        <input type="text" id="f-kategori" placeholder="Kategori (Misal: Pangan)" class="w-full p-4 bg-gray-50 rounded-2xl border-none outline-none">
-                    `;
-                } else {
-                    fields.innerHTML = `
-                        <input type="text" id="f-nama" placeholder="Nama/Tugas/Item" class="w-full p-4 bg-gray-50 rounded-2xl border-none outline-none">
-                        <input type="text" id="f-status" placeholder="Status/Deadline" class="w-full p-4 bg-gray-50 rounded-2xl border-none outline-none">
-                    `;
-                }
-            }
-            m.classList.toggle('hidden');
+        function renderCatatan(c) {
+            const notes = allData['Catatan'] || [];
+            c.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-primary italic uppercase">Catatan Kami</h2>
+                    <button onclick="openModal('Catatan')" class="bg-primary text-white px-6 py-2 rounded-xl text-xs font-bold">+ Baru</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    ${notes.map(n => `<div class="bg-white p-6 rounded-[32px] shadow-sm"><h3 class="font-bold mb-2">${n.Judul}</h3><p class="text-sm opacity-70">${n.Isi}</p></div>`).join('')}
+                </div>
+            `;
         }
 
-        async function submitData() {
+        function openModal(sheet) {
+            const m = document.getElementById('modal');
+            const body = document.getElementById('modal-body');
+            m.dataset.sheet = sheet;
+            let fields = (allData[sheet] && allData[sheet].length > 0) ? Object.keys(allData[sheet][0]) : ['Keterangan', 'Nominal'];
+            body.innerHTML = fields.map(f => `<div><label class="text-[10px] font-bold uppercase ml-2">${f}</label><input id="inp-${f}" class="w-full p-4 bg-base rounded-2xl outline-none"></div>`).join('');
+            m.classList.remove('hidden');
+        }
+
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+
+        async function saveData() {
             const btn = document.getElementById('btn-save');
-            const data = {
-                target_sheet: currentSubPage.includes('wedding') ? currentSubPage : "keuangan",
-                grup: currentSubPage,
-                keterangan: document.getElementById('f-keterangan')?.value || document.getElementById('f-nama')?.value,
-                nominal: document.getElementById('f-nominal')?.value || 0,
-                tipe: document.getElementById('f-tipe')?.value || "Keluar",
-                kategori: document.getElementById('f-kategori')?.value || document.getElementById('f-status')?.value,
-                status: "Proses"
-            };
-
-            btn.innerText = "Processing..."; btn.disabled = true;
+            const sheet = document.getElementById('modal').dataset.sheet;
+            let data = {};
+            document.querySelectorAll('#modal-body input').forEach(i => data[i.id.replace('inp-', '')] = i.value);
+            
+            btn.innerText = "Menyimpan..."; btn.disabled = true;
             try {
-                await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
-                toggleModal(); setTimeout(loadData, 1500);
-            } catch (e) { alert("Error"); }
-            finally { btn.innerText = "Simpan"; btn.disabled = false; }
+                await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({sheet, data}) });
+                closeModal();
+                setTimeout(refreshData, 1500);
+            } catch (e) { alert("Gagal simpan!"); }
+            btn.innerText = "Simpan"; btn.disabled = false;
         }
 
-        window.onload = loadData;
     </script>
 </body>
 </html>
