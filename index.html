@@ -10,7 +10,8 @@
             theme: {
                 extend: {
                     colors: {
-                        krem: '#FFFDD0',
+                        utama: '#ffffff',
+                        aksen: '#795548',
                         cokelat: { 500: '#795548', 700: '#5D4037', 900: '#3E2723' }
                     }
                 }
@@ -20,303 +21,244 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Poppins', sans-serif; }
+        body { font-family: 'Poppins', sans-serif; background-color: #f8f9fa; }
+        
+        /* Fix Background & Logo Drive */
         .bg-welcome {
-            background-image: url('https://drive.google.com/uc?export=view&id=1Xwzd9S_wuNBv40AFeSORQsdd6JfZAwHp');
-            background-size: cover; background-position: center;
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
+                        url('https://lh3.googleusercontent.com/d/1Xwzd9S_wuNBv40AFeSORQsdd6JfZAwHp') center/cover no-repeat;
         }
-        .overlay { background-color: rgba(62, 39, 35, 0.7); }
-        .content-section { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Loading Spinner Baru */
+        .lds-ring { display: inline-block; position: relative; width: 40px; height: 40px; }
+        .lds-ring div { box-sizing: border-box; display: block; position: absolute; width: 32px; height: 32px; margin: 4px; border: 4px solid #795548; border-radius: 50%; animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite; border-color: #795548 transparent transparent transparent; }
+        .lds-ring div:nth-child(1) { animation-delay: -0.45s; }
+        .lds-ring div:nth-child(2) { animation-delay: -0.3s; }
+        .lds-ring div:nth-child(3) { animation-delay: -0.15s; }
+        @keyframes lds-ring { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .content-section { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
-<body class="bg-krem text-cokelat-900 h-screen overflow-hidden">
+<body class="text-slate-800 h-screen overflow-hidden">
 
     <!-- WELCOME SCREEN -->
     <div id="welcome-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-welcome">
-        <div class="absolute inset-0 overlay"></div>
-        <div class="relative z-10 text-center text-white px-4">
-            <img src="https://drive.google.com/uc?export=view&id=1H1JqgBcdkbUg0rmO022wDCospnxkDArF" alt="Logo" class="w-24 h-24 mx-auto mb-4 rounded-full shadow-lg border-4 border-krem">
-            <h1 class="text-4xl md:text-6xl font-bold mb-2">Selamat Datang</h1>
-            <p class="text-lg md:text-xl mb-8">di Hanjitur Dashboard</p>
-            <button onclick="masukApp()" class="bg-krem text-cokelat-900 px-8 py-3 rounded-full font-semibold hover:bg-white transition shadow-lg">
-                Masuk Sekarang <i class="fas fa-arrow-right ml-2"></i>
+        <div class="text-center text-white px-4">
+            <img src="https://lh3.googleusercontent.com/d/1H1JqgBcdkbUg0rmO022wDCospnxkDArF" alt="Logo" class="w-28 h-28 mx-auto mb-6 rounded-full shadow-2xl border-4 border-white object-cover">
+            <h1 class="text-4xl font-bold mb-2">Selamat Datang</h1>
+            <p class="text-lg opacity-90 mb-10">Hanjitur Wedding Dashboard</p>
+            <button onclick="masukApp()" class="bg-white text-cokelat-900 px-10 py-4 rounded-full font-bold hover:scale-105 transition-transform shadow-xl">
+                MULAI SEKARANG <i class="fas fa-heart ml-2 text-red-500"></i>
             </button>
         </div>
     </div>
 
-    <!-- MAIN APP WRAPPER -->
+    <!-- MAIN APP -->
     <div id="app-wrapper" class="hidden flex h-full">
-        
         <!-- SIDEBAR -->
-        <div id="sidebar" class="fixed md:relative z-40 inset-y-0 left-0 w-64 bg-cokelat-900 text-white transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl">
-            <div class="flex items-center justify-between p-4 border-b border-cokelat-700">
-                <div class="text-xl font-bold flex items-center">
-                    <i class="fas fa-heart text-krem mr-2"></i> Hanjitur
-                </div>
-                <button onclick="toggleSidebar()" class="md:hidden text-krem text-2xl"><i class="fas fa-times"></i></button>
+        <div id="sidebar" class="fixed md:relative z-40 inset-y-0 left-0 w-64 bg-cokelat-900 text-white transform -translate-x-full md:translate-x-0 transition-transform duration-300 shadow-2xl">
+            <div class="p-6 border-b border-white/10 text-xl font-bold tracking-widest">
+                HANJITUR
             </div>
-            <nav class="p-4 space-y-2">
-                <a href="javascript:void(0)" onclick="showSection('dashboard')" class="nav-link block py-2.5 px-4 rounded hover:bg-cokelat-700 transition"><i class="fas fa-home w-6"></i> Dashboard</a>
-                <a href="javascript:void(0)" onclick="showSection('pernikahan')" class="nav-link block py-2.5 px-4 rounded hover:bg-cokelat-700 transition"><i class="fas fa-ring w-6"></i> Pernikahan</a>
-                <a href="javascript:void(0)" onclick="showSection('keuangan')" class="nav-link block py-2.5 px-4 rounded hover:bg-cokelat-700 transition"><i class="fas fa-wallet w-6"></i> Keuangan</a>
-                <a href="javascript:void(0)" onclick="showSection('logistik')" class="nav-link block py-2.5 px-4 rounded hover:bg-cokelat-700 transition"><i class="fas fa-box w-6"></i> Logistik</a>
-                <a href="javascript:void(0)" onclick="showSection('maintenance')" class="nav-link block py-2.5 px-4 rounded hover:bg-cokelat-700 transition"><i class="fas fa-tools w-6"></i> Maintenance</a>
-                <a href="javascript:void(0)" onclick="showSection('arsip')" class="nav-link block py-2.5 px-4 rounded hover:bg-cokelat-700 transition"><i class="fas fa-folder-open w-6"></i> Arsip</a>
-                <a href="javascript:void(0)" onclick="showSection('catatan')" class="nav-link block py-2.5 px-4 rounded hover:bg-cokelat-700 transition"><i class="fas fa-sticky-note w-6"></i> Catatan</a>
+            <nav class="p-4 space-y-1">
+                <button onclick="showSection('dashboard')" class="w-full flex items-center p-3 rounded-lg hover:bg-white/10 transition"><i class="fas fa-th-large w-8 text-orange-300"></i> Dashboard</button>
+                <button onclick="showSection('pernikahan')" class="w-full flex items-center p-3 rounded-lg hover:bg-white/10 transition"><i class="fas fa-ring w-8 text-orange-300"></i> Pernikahan</button>
+                <button onclick="showSection('keuangan')" class="w-full flex items-center p-3 rounded-lg hover:bg-white/10 transition"><i class="fas fa-wallet w-8 text-orange-300"></i> Keuangan</button>
+                <button onclick="showSection('catatan')" class="w-full flex items-center p-3 rounded-lg hover:bg-white/10 transition"><i class="fas fa-edit w-8 text-orange-300"></i> Catatan</button>
             </nav>
         </div>
 
-        <div class="flex-1 flex flex-col h-full overflow-hidden">
-            <!-- HEADER -->
-            <header class="bg-white shadow-sm p-4 flex justify-between items-center z-30">
-                <button onclick="toggleSidebar()" class="text-cokelat-900 text-2xl md:hidden"><i class="fas fa-bars"></i></button>
-                <div class="font-semibold text-lg" id="header-title">Dashboard</div>
-                <div id="current-date" class="text-sm text-gray-500 hidden md:block"></div>
+        <div class="flex-1 flex flex-col h-full overflow-hidden bg-white">
+            <header class="bg-white border-b p-4 flex justify-between items-center shadow-sm">
+                <button onclick="toggleSidebar()" class="md:hidden text-2xl"><i class="fas fa-bars"></i></button>
+                <h2 id="header-title" class="font-semibold text-gray-700">Dashboard</h2>
+                <div id="current-date" class="text-xs font-medium text-gray-400"></div>
             </header>
 
-            <!-- MAIN CONTENT -->
-            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-krem p-4 md:p-6">
-                
-                <div id="loader" class="hidden text-center py-10">
-                    <i class="fas fa-spinner fa-spin text-4xl text-cokelat-500"></i>
+            <main class="flex-1 overflow-y-auto p-6">
+                <!-- Loader -->
+                <div id="loader" class="hidden fixed inset-0 bg-white/60 z-[100] flex flex-col items-center justify-center">
+                    <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
+                    <p class="mt-2 text-sm font-semibold text-cokelat-900">Memproses...</p>
                 </div>
 
-                <!-- SECTION: DASHBOARD -->
+                <!-- Section Dashboard -->
                 <section id="section-dashboard" class="content-section">
-                    <div class="bg-white rounded-lg shadow p-6 border-t-4 border-cokelat-500 mb-6">
-                        <h2 class="text-2xl font-bold mb-2">Halo, Pasangan Bahagia! ❤️</h2>
-                        <p id="dashboard-date-info" class="text-gray-600 mb-4"></p>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div class="bg-krem p-4 rounded-lg shadow-sm border border-cokelat-500/20">
-                                <h3 class="font-bold text-cokelat-700"><i class="fas fa-calendar-alt"></i> Menuju Pernikahan</h3>
-                                <p id="widget-h-min" class="text-2xl mt-2 font-bold text-cokelat-900">- Hari Lagi</p>
-                            </div>
+                    <div class="bg-gradient-to-r from-cokelat-700 to-cokelat-900 rounded-2xl p-8 text-white shadow-lg mb-6">
+                        <h2 class="text-3xl font-bold mb-2">Hello, Love! ❤️</h2>
+                        <p class="opacity-80">Siap untuk hari besar kalian?</p>
+                        <div class="mt-6 bg-white/20 inline-block px-6 py-3 rounded-xl backdrop-blur-sm">
+                            <span id="widget-h-min" class="text-xl font-bold">---</span>
                         </div>
                     </div>
                 </section>
 
-                <!-- SECTION: PERNIKAHAN -->
-                <section id="section-pernikahan" class="content-section hidden">
-                    <div class="flex flex-wrap gap-2 mb-4">
-                        <button onclick="switchSubMenu('pernikahan', 'wedding_todo')" class="sub-pernikahan active-sub bg-cokelat-700 text-white px-4 py-2 rounded-full text-sm">Daftar Tugas</button>
-                        <button onclick="switchSubMenu('pernikahan', 'wedding_budget')" class="sub-pernikahan bg-white px-4 py-2 rounded-full text-sm border border-cokelat-500">Anggaran</button>
-                        <button onclick="switchSubMenu('pernikahan', 'wedding_vendors')" class="sub-pernikahan bg-white px-4 py-2 rounded-full text-sm border border-cokelat-500">Vendor</button>
-                        <button onclick="switchSubMenu('pernikahan', 'wedding_guests')" class="sub-pernikahan bg-white px-4 py-2 rounded-full text-sm border border-cokelat-500">Tamu</button>
-                    </div>
-                    <div class="bg-white rounded-lg shadow overflow-hidden p-4">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 id="table-title-pernikahan" class="font-bold uppercase text-sm tracking-widest">Daftar Tugas</h3>
-                            <button onclick="bukaModalForm()" class="bg-cokelat-500 text-white px-3 py-1 rounded text-xs"><i class="fas fa-plus"></i> Tambah Data</button>
+                <!-- Section Tabel Dinamis -->
+                <section id="section-tabel" class="content-section hidden">
+                    <div id="sub-menu-container" class="flex gap-2 mb-6 overflow-x-auto pb-2"></div>
+                    <div class="bg-white rounded-xl border shadow-sm">
+                        <div class="p-4 border-b flex justify-between items-center">
+                            <h3 id="table-label" class="font-bold text-gray-700 uppercase text-xs tracking-wider">Data</h3>
+                            <button onclick="bukaModalForm()" class="bg-cokelat-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-cokelat-700 shadow-md transition">
+                                <i class="fas fa-plus mr-1"></i> Tambah
+                            </button>
                         </div>
                         <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead id="thead-pernikahan" class="bg-cokelat-700 text-white text-xs uppercase"></thead>
-                                <tbody id="tbody-pernikahan" class="text-sm"></tbody>
+                            <table class="w-full text-sm text-left">
+                                <thead id="thead-main" class="bg-gray-50 border-b text-gray-500"></thead>
+                                <tbody id="tbody-main" class="divide-y"></tbody>
                             </table>
                         </div>
                     </div>
                 </section>
 
-                <!-- SECTION: KEUANGAN -->
-                <section id="section-keuangan" class="content-section hidden">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <div class="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
-                            <p class="text-xs text-gray-500 font-bold uppercase">Total Pemasukan</p>
-                            <h3 id="info-pemasukan" class="text-lg font-bold">Rp 0</h3>
-                        </div>
-                        <div class="bg-white p-4 rounded-lg shadow border-l-4 border-red-500">
-                            <p class="text-xs text-gray-500 font-bold uppercase">Total Pengeluaran</p>
-                            <h3 id="info-pengeluaran" class="text-lg font-bold">Rp 0</h3>
-                        </div>
-                    </div>
-                    <div class="flex flex-wrap gap-2 mb-4">
-                        <button onclick="switchSubMenu('keuangan', 'keuangan_aruskas')" class="sub-keuangan active-sub bg-cokelat-700 text-white px-4 py-2 rounded-full text-sm">Arus Kas</button>
-                        <button onclick="switchSubMenu('keuangan', 'keuangan_tagihan')" class="sub-keuangan bg-white px-4 py-2 rounded-full text-sm border border-cokelat-500">Tagihan</button>
-                        <button onclick="switchSubMenu('keuangan', 'keuangan_budget')" class="sub-keuangan bg-white px-4 py-2 rounded-full text-sm border border-cokelat-500">Budget</button>
-                        <button onclick="switchSubMenu('keuangan', 'keuangan_tabungan')" class="sub-keuangan bg-white px-4 py-2 rounded-full text-sm border border-cokelat-500">Tabungan</button>
-                    </div>
-                    <div class="bg-white rounded-lg shadow p-4 overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead id="thead-keuangan" class="bg-gray-100 text-xs uppercase"></thead>
-                            <tbody id="tbody-keuangan" class="text-sm"></tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <!-- SECTION: LOGISTIK / MAINTENANCE / ARSIP (Generic Table) -->
-                <section id="section-generic" class="content-section hidden">
-                    <div class="bg-white rounded-lg shadow p-4">
-                        <div class="flex justify-between items-center mb-4 border-b pb-2">
-                            <h2 id="generic-title" class="font-bold">Data</h2>
-                            <button onclick="bukaModalForm()" class="bg-cokelat-700 text-white px-3 py-1 rounded text-xs">Tambah</button>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left">
-                                <thead id="thead-generic" class="bg-cokelat-900 text-white text-xs uppercase"></thead>
-                                <tbody id="tbody-generic" class="text-sm"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- SECTION: CATATAN -->
+                <!-- Section Catatan -->
                 <section id="section-catatan" class="content-section hidden">
                     <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-2xl font-bold">Catatan Kecil</h2>
-                        <button onclick="bukaModalCatatan()" class="bg-cokelat-500 text-white px-4 py-2 rounded-full shadow hover:bg-cokelat-700 transition">
-                            <i class="fas fa-pen-nib"></i> Tulis Baru
-                        </button>
+                        <h2 class="text-xl font-bold text-gray-800">Catatan Kecil</h2>
+                        <button onclick="bukaModalCatatan()" class="bg-cokelat-900 text-white px-5 py-2 rounded-full text-sm">+ Baru</button>
                     </div>
                     <div id="catatan-container" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
                 </section>
-
             </main>
         </div>
     </div>
 
-    <!-- MODAL FORM DINAMIS (Untuk Semua Tabel) -->
-    <div id="modal-form" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div class="bg-cokelat-900 p-4 text-white flex justify-between items-center">
-                <h3 id="modal-form-title" class="font-bold uppercase tracking-widest text-sm">Input Data</h3>
-                <button onclick="tutupModal('modal-form')"><i class="fas fa-times"></i></button>
+    <!-- MODAL FORM -->
+    <div id="modal-form" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
+                <h3 class="font-bold text-gray-700" id="form-title">Input Data</h3>
+                <button onclick="tutupModal('modal-form')" class="text-gray-400 hover:text-black"><i class="fas fa-times"></i></button>
             </div>
             <form id="dynamic-form" onsubmit="simpanDataDinamis(event)" class="p-6 space-y-4">
-                <div id="form-fields" class="max-h-96 overflow-y-auto pr-2">
-                    <!-- Fields generated by JS -->
-                </div>
-                <button type="submit" class="w-full bg-cokelat-700 text-white py-3 rounded-lg font-bold hover:bg-cokelat-900 transition">SIMPAN DATA</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL CATATAN -->
-    <div id="modal-catatan" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl w-full max-w-md p-6">
-            <h3 class="text-xl font-bold mb-4 text-cokelat-900 border-b pb-2">Catatan Baru</h3>
-            <form id="form-catatan" onsubmit="simpanCatatan(event)" class="space-y-4">
-                <input type="hidden" id="catatan-id">
-                <input type="text" id="catatan-judul" placeholder="Judul..." required class="w-full border-2 border-krem p-3 rounded-lg focus:border-cokelat-500 outline-none">
-                <textarea id="catatan-isi" rows="5" placeholder="Tulis sesuatu..." required class="w-full border-2 border-krem p-3 rounded-lg focus:border-cokelat-500 outline-none"></textarea>
-                <div class="flex justify-end space-x-2">
-                    <button type="button" onclick="tutupModal('modal-catatan')" class="px-4 py-2 text-gray-500">Batal</button>
-                    <button type="submit" class="bg-cokelat-700 text-white px-6 py-2 rounded-lg font-bold">Simpan</button>
-                </div>
+                <div id="form-fields" class="max-h-[60vh] overflow-y-auto space-y-4 pr-2"></div>
+                <button type="submit" class="w-full bg-cokelat-700 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-cokelat-900 transition mt-4">SIMPAN</button>
             </form>
         </div>
     </div>
 
     <script>
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbw5CqINqjAGpxD8BWTzLcGhmmC6aifJ95kBDBsX87rBoaDMa7QOuN1TZhHqU7zUyMyg/exec';
-        const WEDDING_DATE = '2027-08-01'; // Contoh: '2024-12-25'
-        
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbzm_-UF3QQx9AGlT1CEhFcPZMDwkw3whVMLQFr4ZOF_HUo0hWuj_9pBlr11KEOr7vXS/exec';
+        const WEDDING_DATE = '2027-08-01';
         let currentSheet = '';
-        let currentSection = 'dashboard';
+        let currentSection = '';
 
-        // Initialization
-        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        document.getElementById('current-date').innerText = new Date().toLocaleDateString('id-ID', dateOptions);
+        // Tampilkan Tanggal
+        document.getElementById('current-date').innerText = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
         function masukApp() {
-            document.getElementById('welcome-screen').classList.add('hidden');
+            document.getElementById('welcome-screen').style.display = 'none';
             document.getElementById('app-wrapper').classList.remove('hidden');
-            updateDashboardWidgets();
+            showSection('dashboard');
         }
 
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('-translate-x-full');
         }
 
-        function tutupModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function showLoader(show) {
+            document.getElementById('loader').classList.toggle('hidden', !show);
+        }
 
-        function showLoader(show) { document.getElementById('loader').classList.toggle('hidden', !show); }
+        function tutupModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
 
         function showSection(sectionId) {
             currentSection = sectionId;
-            document.querySelectorAll('.content-section').forEach(sec => sec.classList.add('hidden'));
-            
-            let targetSection = sectionId;
-            if(['logistik', 'maintenance', 'arsip'].includes(sectionId)) {
-                targetSection = 'generic';
-                document.getElementById('generic-title').innerText = sectionId.toUpperCase();
-                loadDataTable(sectionId.charAt(0).toUpperCase() + sectionId.slice(1), 'generic');
-            } else if(sectionId === 'pernikahan') {
-                switchSubMenu('pernikahan', 'wedding_todo');
-            } else if(sectionId === 'keuangan') {
-                switchSubMenu('keuangan', 'keuangan_aruskas');
-            } else if(sectionId === 'catatan') {
+            document.querySelectorAll('.content-section').forEach(s => s.classList.add('hidden'));
+            document.getElementById('header-title').innerText = sectionId.toUpperCase();
+
+            if (sectionId === 'dashboard') {
+                document.getElementById('section-dashboard').classList.remove('hidden');
+                updateDashboard();
+            } else if (sectionId === 'catatan') {
+                document.getElementById('section-catatan').classList.remove('hidden');
                 loadCatatan();
             } else {
-                updateDashboardWidgets();
+                document.getElementById('section-tabel').classList.remove('hidden');
+                setupSubMenu(sectionId);
             }
-
-            document.getElementById('section-' + targetSection).classList.remove('hidden');
-            document.getElementById('header-title').innerText = sectionId.toUpperCase();
-            if (window.innerWidth < 768) toggleSidebar();
+            if (window.innerWidth < 768 && !document.getElementById('sidebar').classList.contains('-translate-x-full')) toggleSidebar();
         }
 
-        function switchSubMenu(parent, sheetName) {
-            currentSheet = sheetName;
-            document.querySelectorAll(`.sub-${parent}`).forEach(btn => {
-                btn.classList.remove('bg-cokelat-700', 'text-white');
-                btn.classList.add('bg-white', 'text-cokelat-900');
+        function setupSubMenu(section) {
+            const container = document.getElementById('sub-menu-container');
+            container.innerHTML = '';
+            let menus = [];
+            if (section === 'pernikahan') menus = ['Wedding_Todo', 'Wedding_Budget', 'Wedding_Vendors', 'Wedding_Guests'];
+            if (section === 'keuangan') menus = ['Keuangan_Aruskas', 'Keuangan_Tagihan', 'Keuangan_Tabungan'];
+
+            menus.forEach((m, i) => {
+                const btn = document.createElement('button');
+                btn.className = `px-4 py-2 rounded-full text-xs font-bold border transition ${i===0 ? 'bg-cokelat-700 text-white' : 'bg-white text-gray-500'}`;
+                btn.innerText = m.replace('_', ' ');
+                btn.onclick = (e) => {
+                    document.querySelectorAll('#sub-menu-container button').forEach(b => b.className = 'px-4 py-2 rounded-full text-xs font-bold border bg-white text-gray-500');
+                    e.target.className = 'px-4 py-2 rounded-full text-xs font-bold border bg-cokelat-700 text-white';
+                    loadData(m);
+                };
+                container.appendChild(btn);
             });
-            event.target.classList.add('bg-cokelat-700', 'text-white');
-            loadDataTable(sheetName, parent);
+            loadData(menus[0]);
         }
 
-        // TABLE LOGIC
-        function loadDataTable(sheetName, uiType) {
+        function loadData(sheetName) {
             currentSheet = sheetName;
             showLoader(true);
-            const thead = document.getElementById(`thead-${uiType}`);
-            const tbody = document.getElementById(`tbody-${uiType}`);
+            const thead = document.getElementById('thead-main');
+            const tbody = document.getElementById('tbody-main');
             thead.innerHTML = ''; tbody.innerHTML = '';
 
             fetch(`${GAS_URL}?action=read&sheetName=${sheetName}`)
-                .then(res => res.json())
+                .then(r => r.json())
                 .then(res => {
-                    if (res.status === 'success' && res.data.length > 0) {
-                        const headers = Object.keys(res.data[0]);
-                        let headRow = '<tr>';
-                        headers.forEach(h => { if(h !== 'ID') headRow += `<th class="p-3 border-b">${h}</th>` });
-                        headRow += '<th class="p-3 border-b text-center">Aksi</th></tr>';
-                        thead.innerHTML = headRow;
+                    // Perhatikan: sekarang menggunakan res.headers dan res.data
+                    if (res.status === 'success') {
+                        const headers = res.headers;
+                        const data = res.data;
 
-                        res.data.forEach(item => {
-                            let row = `<tr class="hover:bg-cokelat-50 border-b">`;
-                            headers.forEach(h => { if(h !== 'ID') row += `<td class="p-3">${item[h] || '-'}</td>` });
-                            row += `<td class="p-3 text-center text-red-500"><button onclick="hapusData('${sheetName}', '${item.ID}', () => loadDataTable('${sheetName}', '${uiType}'))"><i class="fas fa-trash"></i></button></td></tr>`;
-                            tbody.innerHTML += row;
-                        });
-                    } else {
-                        tbody.innerHTML = '<tr><td colspan="10" class="text-center p-10">Belum ada data di sheet ini.</td></tr>';
+                        // Buat Header Tabel
+                        let hRow = '<tr>';
+                        headers.forEach(h => { if(h !== 'ID') hRow += `<th class="p-4 font-semibold">${h}</th>` });
+                        hRow += '<th class="p-4 text-center">Aksi</th></tr>';
+                        thead.innerHTML = hRow;
+
+                        // Buat Baris Data
+                        if (data.length === 0) {
+                            tbody.innerHTML = '<tr><td colspan="10" class="p-10 text-center text-gray-400 italic">Belum ada data.</td></tr>';
+                        } else {
+                            data.forEach(item => {
+                                let rRow = '<tr class="hover:bg-gray-50 transition">';
+                                headers.forEach(h => { if(h !== 'ID') rRow += `<td class="p-4 text-gray-600">${item[h] || '-'}</td>` });
+                                rRow += `<td class="p-4 text-center">
+                                    <button onclick="hapusData('${sheetName}', '${item.ID}')" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
+                                </td></tr>`;
+                                tbody.innerHTML += rRow;
+                            });
+                        }
                     }
-                })
-                .finally(() => showLoader(false));
+                }).finally(() => showLoader(false));
         }
 
-        // MODAL FORM DYNAMIC
+        
         function bukaModalForm() {
             const fields = document.getElementById('form-fields');
-            fields.innerHTML = '<p class="text-center">Memuat kolom...</p>';
+            fields.innerHTML = '<div class="p-4 text-center">Memuat kolom...</div>';
             document.getElementById('modal-form').classList.remove('hidden');
 
             fetch(`${GAS_URL}?action=read&sheetName=${currentSheet}`)
-                .then(res => res.json())
+                .then(r => r.json())
                 .then(res => {
                     fields.innerHTML = '';
-                    const sample = res.data[0] || {};
-                    // Jika data kosong, panggil header dari sheet bisa lambat, kita asumsikan dari struktur sheet yang anda berikan di prompt sebelumnya
-                    // Untuk kemudahan, kita ambil keys dari data yang ada
-                    const headers = Object.keys(sample).filter(k => k !== 'ID');
-                    
-                    headers.forEach(h => {
+                    res.headers.filter(h => h !== 'ID').forEach(h => {
                         fields.innerHTML += `
                             <div>
-                                <label class="block text-xs font-bold text-cokelat-700 mb-1 uppercase">${h}</label>
-                                <input type="text" name="${h}" class="w-full border-b-2 border-krem p-2 outline-none focus:border-cokelat-500" placeholder="Input ${h}...">
+                                <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">${h}</label>
+                                <input type="text" name="${h}" required class="w-full border-2 border-gray-100 p-3 rounded-xl focus:border-cokelat-500 outline-none transition" placeholder="Masukkan ${h}...">
                             </div>`;
                     });
                 });
@@ -324,74 +266,48 @@
 
         function simpanDataDinamis(e) {
             e.preventDefault();
-            const formData = new FormData(e.target);
-            const data = {};
-            formData.forEach((val, key) => data[key] = val);
-
             showLoader(true);
-            tutupModal('modal-form');
+            const formData = new FormData(e.target);
+            const payload = { action: 'create', sheetName: currentSheet, data: Object.fromEntries(formData) };
 
-            fetch(GAS_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'create', sheetName: currentSheet, data: data })
-            }).then(() => {
-                alert('Data berhasil disimpan!');
-                showSection(currentSection);
-            });
+            fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) })
+                .then(() => {
+                    tutupModal('modal-form');
+                    loadData(currentSheet);
+                });
         }
 
-        // CATATAN LOGIC
+        function hapusData(sheet, id) {
+            if (!confirm('Hapus data ini?')) return;
+            showLoader(true);
+            fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', sheetName: sheet, id: id }) })
+                .then(() => loadData(sheet));
+        }
+
+        function updateDashboard() {
+            const hMin = Math.ceil((new Date(WEDDING_DATE) - new Date()) / (1000 * 60 * 60 * 24));
+            document.getElementById('widget-h-min').innerText = hMin > 0 ? `${hMin} Hari Lagi Menuju Halal` : 'Hari Bahagia Telah Tiba!';
+        }
+
+        // Catatan Logic
         function loadCatatan() {
             showLoader(true);
             const container = document.getElementById('catatan-container');
             container.innerHTML = '';
             fetch(`${GAS_URL}?action=read&sheetName=Catatan`)
-                .then(res => res.json()).then(res => {
+                .then(r => r.json())
+                .then(res => {
                     res.data.forEach(item => {
                         container.innerHTML += `
-                            <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-cokelat-500 group relative">
-                                <h3 class="font-bold text-lg mb-2">${item.Judul}</h3>
-                                <p class="text-sm text-gray-500 line-clamp-4">${item.Isi}</p>
-                                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition">
-                                    <button onclick="hapusData('Catatan', '${item.ID}', loadCatatan)" class="text-red-400"><i class="fas fa-trash"></i></button>
-                                </div>
+                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 group relative">
+                                <h3 class="font-bold text-gray-800 mb-2">${item.Judul}</h3>
+                                <p class="text-sm text-gray-500">${item.Isi}</p>
+                                <button onclick="hapusData('Catatan', '${item.ID}')" class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 text-red-300 transition hover:text-red-500">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>`;
                     });
                 }).finally(() => showLoader(false));
-        }
-
-        function bukaModalCatatan() {
-            document.getElementById('form-catatan').reset();
-            document.getElementById('modal-catatan').classList.remove('hidden');
-        }
-
-        function simpanCatatan(e) {
-            e.preventDefault();
-            const data = {
-                Judul: document.getElementById('catatan-judul').value,
-                Isi: document.getElementById('catatan-isi').value,
-                Tanggal: new Date().toLocaleDateString('id-ID')
-            };
-            tutupModal('modal-catatan');
-            showLoader(true);
-            fetch(GAS_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'create', sheetName: 'Catatan', data: data })
-            }).then(() => loadCatatan());
-        }
-
-        function hapusData(sheet, id, callback) {
-            if(!confirm('Hapus data ini?')) return;
-            showLoader(true);
-            fetch(GAS_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'delete', sheetName: sheet, id: id })
-            }).then(() => callback());
-        }
-
-        function updateDashboardWidgets() {
-            const hMin = Math.ceil((new Date(WEDDING_DATE) - new Date()) / (1000 * 60 * 60 * 24));
-            document.getElementById('widget-h-min').innerText = hMin > 0 ? `${hMin} Hari Lagi` : 'Selamat Hari Pernikahan!';
         }
     </script>
 </body>
