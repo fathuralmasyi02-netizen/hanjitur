@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HANJITUR - Sistem Rumah Tangga</title>
+    <title>HANJITUR - Finance System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
@@ -11,15 +11,13 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #FDFCF0; }
         .sidebar-transition { transition: all 0.3s ease-in-out; }
         .active-menu { background-color: #1E40AF; color: white !important; }
+        .tab-active { border-bottom: 3px solid #1E40AF; color: #1E40AF; font-weight: 700; }
         .card-shadow { box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05); }
-        @media (max-width: 768px) {
-            .sidebar-hide { transform: translateX(-100%); }
-        }
+        @media (max-width: 768px) { .sidebar-hide { transform: translateX(-100%); } }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden">
 
-    <!-- Overlay Mobile -->
     <div id="overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden"></div>
 
     <!-- SIDEBAR -->
@@ -29,9 +27,8 @@
                 <div class="w-8 h-8 bg-blue-800 rounded-lg flex items-center justify-center text-white font-bold">H</div>
                 <span class="text-xl font-bold text-gray-800">HANJITUR</span>
             </div>
-
             <nav class="flex-1 space-y-1">
-                <button onclick="changePage('dashboard')" id="m-dashboard" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-100 transition">
+                <button onclick="changePage('dashboard')" id="m-dashboard" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-100 transition active-menu">
                     <i data-lucide="layout-dashboard" class="w-5"></i> Dashboard
                 </button>
                 <button onclick="changePage('keuangan')" id="m-keuangan" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-100 transition">
@@ -40,43 +37,31 @@
                 <button onclick="changePage('logistik')" id="m-logistik" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-100 transition">
                     <i data-lucide="shopping-basket" class="w-5"></i> Logistik
                 </button>
-                <button onclick="changePage('maintenance')" id="m-maintenance" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-100 transition">
-                    <i data-lucide="wrench" class="w-5"></i> Maintenance
-                </button>
-                <button onclick="changePage('arsip')" id="m-arsip" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-100 transition">
-                    <i data-lucide="archive" class="w-5"></i> Arsip
-                </button>
-                <button onclick="changePage('catatan')" id="m-catatan" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-100 transition">
-                    <i data-lucide="sticky-note" class="w-5"></i> Catatan
-                </button>
             </nav>
         </div>
     </aside>
 
     <!-- MAIN CONTENT -->
     <main class="flex-1 flex flex-col min-w-0">
-        <!-- Header -->
         <header class="h-16 bg-white border-b border-gray-100 px-6 flex items-center justify-between">
             <div class="flex items-center gap-4">
-                <button onclick="toggleSidebar()" class="md:hidden p-2 hover:bg-gray-100 rounded-lg">
-                    <i data-lucide="menu"></i>
-                </button>
-                <h2 id="title-text" class="font-bold text-gray-700">Dashboard</h2>
+                <button onclick="toggleSidebar()" class="md:hidden p-2 hover:bg-gray-100 rounded-lg"><i data-lucide="menu"></i></button>
+                <h2 id="title-text" class="font-bold text-gray-700 uppercase tracking-wider text-sm">Dashboard</h2>
             </div>
             <button onclick="loadData()" class="p-2 hover:bg-blue-50 rounded-full transition text-blue-800" id="refresh-btn">
                 <i data-lucide="refresh-cw" class="w-5"></i>
             </button>
         </header>
 
-        <!-- Content Area -->
-        <div id="content" class="p-6 overflow-y-auto flex-1">
-            <div class="flex items-center justify-center h-full text-gray-400">Memuat data dari Spreadsheet...</div>
+        <div id="content" class="p-4 md:p-8 overflow-y-auto flex-1">
+            <div class="flex items-center justify-center h-full text-gray-400 italic text-sm">Menghubungkan ke Hanjitur Database...</div>
         </div>
     </main>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbwdTIZMWjRxdPlTbPtt7DmGyPSFO3VFVbK7wQBRRdxSDVu8If7JpUwTGMi0dgAtYXTf/exec";
         let rawData = null;
+        let activeFinanceTab = 'riwayat';
 
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('sidebar-hide');
@@ -89,89 +74,110 @@
             try {
                 const res = await fetch(API_URL);
                 rawData = await res.json();
-                changePage('dashboard');
+                renderCurrentPage();
             } catch (e) {
-                document.getElementById('content').innerHTML = `<div class="p-4 bg-red-100 text-red-700 rounded-lg">Gagal terhubung ke API. Pastikan Deployment Apps Script sudah benar.</div>`;
+                document.getElementById('content').innerHTML = "Gagal Sinkronisasi.";
             } finally {
                 btn.classList.remove('animate-spin');
             }
         }
 
+        let currentPage = 'dashboard';
         function changePage(page) {
+            currentPage = page;
             document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active-menu'));
             document.getElementById('m-' + page).classList.add('active-menu');
-            document.getElementById('title-text').innerText = page.charAt(0).toUpperCase() + page.slice(1);
+            document.getElementById('title-text').innerText = page;
             if(window.innerWidth < 768) toggleSidebar();
-            
+            renderCurrentPage();
+        }
+
+        function renderCurrentPage() {
             const area = document.getElementById('content');
-            if (page === 'dashboard') renderDashboard(area);
-            else if (page === 'keuangan') renderKeuangan(area);
-            else area.innerHTML = `<div class="text-center p-20 text-gray-400">Menu ${page} sedang dikembangkan.</div>`;
+            if (currentPage === 'dashboard') renderDashboard(area);
+            else if (currentPage === 'keuangan') renderKeuangan(area);
+            else area.innerHTML = `<div class="text-center p-20 text-gray-400">Modul ${currentPage} siap dikembangkan.</div>`;
+            lucide.createIcons();
         }
 
         function renderDashboard(area) {
-            const keuangan = rawData.keuangan || [];
-            let saldo = 0;
-            keuangan.forEach(t => {
-                if(t.Tipe === 'Masuk') saldo += t.Nominal; else saldo -= t.Nominal;
-            });
+            const keuangan = rawData?.keuangan || [];
+            let saldo = keuangan.reduce((acc, curr) => curr.Tipe === 'Masuk' ? acc + curr.Nominal : acc - curr.Nominal, 0);
 
             area.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-blue-800 p-6 rounded-2xl text-white card-shadow">
-                        <p class="text-xs opacity-70 mb-1">Total Saldo Tersedia</p>
-                        <h3 class="text-2xl font-bold">Rp ${saldo.toLocaleString('id-ID')}</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-blue-800 p-8 rounded-3xl text-white shadow-xl shadow-blue-100">
+                        <p class="text-xs opacity-70 mb-2 uppercase font-bold tracking-widest">Total Saldo Rumah Tangga</p>
+                        <h3 class="text-4xl font-bold">Rp ${saldo.toLocaleString('id-ID')}</h3>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl card-shadow border border-gray-100">
-                        <p class="text-xs text-gray-400 mb-1">Tagihan Bulan Ini</p>
-                        <h3 class="text-xl font-bold text-gray-800">Cek Tab Tagihan</h3>
+                    <div class="bg-white p-8 rounded-3xl card-shadow border border-gray-50">
+                        <p class="text-xs text-gray-400 mb-2 uppercase font-bold tracking-widest">Info Terkini</p>
+                        <div class="flex items-center gap-3 text-orange-600 font-bold">
+                            <i data-lucide="alert-circle" class="w-5"></i> Ada Tagihan Menanti!
+                        </div>
                     </div>
                 </div>
             `;
         }
 
+        function setFinanceTab(tab) {
+            activeFinanceTab = tab;
+            renderKeuangan(document.getElementById('content'));
+            lucide.createIcons();
+        }
+
         function renderKeuangan(area) {
-            const data = rawData.keuangan || [];
-            let html = `
+            const data = rawData?.keuangan || [];
+            
+            // Filter Data per Tab
+            const filteredData = activeFinanceTab === 'riwayat' ? data : data.filter(d => d.Grup.toLowerCase() === activeFinanceTab.toLowerCase());
+
+            area.innerHTML = `
                 <div class="space-y-6">
-                    <div class="flex justify-between items-center">
-                        <h3 class="font-bold text-gray-700">Ringkasan Arus Kas</h3>
-                        <button class="bg-blue-800 text-white px-4 py-2 rounded-xl text-sm font-semibold">+ Tambah Transaksi</button>
+                    <!-- TABS MENU -->
+                    <div class="flex gap-6 border-b border-gray-200 text-sm overflow-x-auto whitespace-nowrap">
+                        <button onclick="setFinanceTab('riwayat')" class="pb-3 px-1 transition ${activeFinanceTab === 'riwayat' ? 'tab-active' : 'text-gray-400 font-medium'}">Semua Riwayat</button>
+                        <button onclick="setFinanceTab('Anggaran')" class="pb-3 px-1 transition ${activeFinanceTab === 'Anggaran' ? 'tab-active' : 'text-gray-400 font-medium'}">Anggaran</button>
+                        <button onclick="setFinanceTab('Tagihan')" class="pb-3 px-1 transition ${activeFinanceTab === 'Tagihan' ? 'tab-active' : 'text-gray-400 font-medium'}">Tagihan</button>
+                        <button onclick="setFinanceTab('Tabungan')" class="pb-3 px-1 transition ${activeFinanceTab === 'Tabungan' ? 'tab-active' : 'text-gray-400 font-medium'}">Tabungan/Investasi</button>
                     </div>
-                    <div class="bg-white rounded-2xl card-shadow overflow-hidden border border-gray-100">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-                                    <th class="p-4">Tanggal</th>
-                                    <th class="p-4">Keterangan</th>
-                                    <th class="p-4 text-right">Nominal</th>
+
+                    <!-- TABLE CONTENT -->
+                    <div class="bg-white rounded-3xl card-shadow overflow-hidden border border-gray-50">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50/50 text-gray-400 text-[10px] uppercase font-bold">
+                                <tr>
+                                    <th class="p-5">Keterangan</th>
+                                    <th class="p-5 text-right font-bold">Nominal</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-100">
-                                ${data.map(row => `
-                                    <tr class="hover:bg-gray-50 transition">
-                                        <td class="p-4 text-xs text-gray-400">${new Date(row.Tanggal).toLocaleDateString('id-ID')}</td>
-                                        <td class="p-4">
-                                            <p class="font-bold text-sm text-gray-700">${row.Keterangan}</p>
-                                            <p class="text-[10px] text-gray-400 uppercase">${row.Kategori}</p>
+                            <tbody class="divide-y divide-gray-50">
+                                ${filteredData.length > 0 ? filteredData.map(row => `
+                                    <tr class="hover:bg-blue-50/30 transition group">
+                                        <td class="p-5">
+                                            <div class="flex items-center gap-4">
+                                                <div class="w-10 h-10 rounded-full flex items-center justify-center ${row.Tipe === 'Masuk' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}">
+                                                    <i data-lucide="${row.Tipe === 'Masuk' ? 'arrow-down-left' : 'arrow-up-right'}" class="w-4"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="font-bold text-gray-800 text-sm">${row.Keterangan}</p>
+                                                    <p class="text-[10px] text-gray-400 font-medium tracking-wide uppercase">${new Date(row.Tanggal).toLocaleDateString('id-ID', {day:'2-digit', month:'short'})} • ${row.Kategori}</p>
+                                                </div>
+                                            </div>
                                         </td>
-                                        <td class="p-4 text-right font-bold ${row.Tipe === 'Masuk' ? 'text-green-600' : 'text-red-600'}">
-                                            ${row.Tipe === 'Masuk' ? '+' : '-'} ${row.Nominal.toLocaleString('id-ID')}
+                                        <td class="p-5 text-right font-bold text-sm ${row.Tipe === 'Masuk' ? 'text-green-600' : 'text-gray-800'}">
+                                            ${row.Tipe === 'Masuk' ? '+' : '-'} Rp ${row.Nominal.toLocaleString('id-ID')}
                                         </td>
                                     </tr>
-                                `).join('')}
+                                `).join('') : `<tr><td colspan="2" class="p-10 text-center text-gray-400 italic text-sm">Tidak ada data di kategori ini.</td></tr>`}
                             </tbody>
                         </table>
                     </div>
                 </div>
             `;
-            area.innerHTML = html;
         }
 
-        window.onload = () => {
-            lucide.createIcons();
-            loadData();
-        };
+        window.onload = loadData;
     </script>
 </body>
 </html>
