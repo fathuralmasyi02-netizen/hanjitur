@@ -37,13 +37,16 @@
     <!-- Sidebar -->
     <aside id="sidebar" class="fixed md:relative w-64 bg-white border-r border-gray-200 h-full z-30 transition-transform duration-300 sidebar-hide md:transform-none">
         <div class="p-6 h-full flex flex-col">
-            <div class="flex items-center gap-3 mb-10 px-2">
+            <div class="flex items-center gap-3 mb-8 px-2">
                 <div class="w-8 h-8 bg-blue-800 rounded-lg flex items-center justify-center text-white font-bold">H</div>
                 <span class="text-xl font-bold text-gray-800 tracking-tight">HANJITUR</span>
             </div>
             <nav class="flex-1 space-y-1">
                 <button onclick="nav('dashboard')" id="m-dashboard" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition sidebar-active">
                     <i data-lucide="layout-dashboard" class="w-5"></i> Dashboard
+                </button>
+                <button onclick="nav('pernikahan')" id="m-pernikahan" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
+                    <i data-lucide="heart" class="w-5 text-rose-500"></i> Pernikahan
                 </button>
                 <button onclick="nav('keuangan')" id="m-keuangan" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
                     <i data-lucide="wallet" class="w-5"></i> Keuangan
@@ -54,14 +57,6 @@
                 <button onclick="nav('maintenance')" id="m-maintenance" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
                     <i data-lucide="settings" class="w-5"></i> Maintenance
                 </button>
-                <div class="pt-4 mt-4 border-t border-gray-100">
-                    <button onclick="nav('arsip')" id="m-arsip" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
-                        <i data-lucide="archive" class="w-5"></i> Arsip
-                    </button>
-                    <button onclick="nav('catatan')" id="m-catatan" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
-                        <i data-lucide="sticky-note" class="w-5"></i> Catatan
-                    </button>
-                </div>
             </nav>
         </div>
     </aside>
@@ -80,9 +75,9 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbz7wgUwwMRwwqSJnzVOSCB-EqIeNv3K9hAPl2R_XmfJ5B6yNazYqxk_GGADF7aOYgQq/exec"; 
+        const API_URL = "https://script.google.com/macros/s/AKfycbxsE8ggPnpB7Lq2WNx-ttvfPz7HyL3Iv8ehiokW8gzgVWkuD4TOSZbTQz7cDyaMlJuI/exec"; 
         
-        let rawData = { keuangan: [], logistik: [], maintenance: [] }; 
+        let rawData = { keuangan: [], wedding_todo: [], wedding_stats: { progress: 0, countdown: 0 } }; 
         let currentPage = 'dashboard';
         let activeGrup = null;
 
@@ -113,42 +108,84 @@
                 rawData = await res.json();
                 render();
             } catch (e) { console.error(e); }
-            finally {
-                btn?.classList.remove('animate-spin');
-                lucide.createIcons();
-            }
+            finally { btn?.classList.remove('animate-spin'); lucide.createIcons(); }
         }
 
         function render() {
             const area = document.getElementById('content');
-            
             if (currentPage === 'dashboard') {
-                const db = rawData.keuangan || [];
-                const totalMasuk = db.filter(d => d.Tipe === 'Masuk').reduce((a,c) => a + Number(c.Nominal || 0), 0);
-                const totalKeluar = db.filter(d => d.Tipe === 'Keluar').reduce((a,c) => a + Number(c.Nominal || 0), 0);
-                const saldo = totalMasuk - totalKeluar;
-                area.innerHTML = `
-                    <div class="bg-blue-800 p-8 md:p-12 rounded-[40px] text-white shadow-2xl mb-8">
-                        <p class="text-[10px] opacity-60 uppercase font-bold mb-2 tracking-widest">Saldo Saat Ini</p>
-                        <h2 class="text-3xl md:text-5xl font-bold italic">Rp ${saldo.toLocaleString('id-ID')}</h2>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-white p-6 rounded-3xl border border-gray-100">
-                            <p class="text-[10px] text-green-500 font-bold uppercase mb-1">Total Masuk</p>
-                            <p class="font-bold text-gray-800">Rp ${totalMasuk.toLocaleString('id-ID')}</p>
-                        </div>
-                        <div class="bg-white p-6 rounded-3xl border border-gray-100">
-                            <p class="text-[10px] text-red-500 font-bold uppercase mb-1">Total Keluar</p>
-                            <p class="font-bold text-gray-800">Rp ${totalKeluar.toLocaleString('id-ID')}</p>
-                        </div>
-                    </div>
-                `;
+                renderDashboard(area);
+            } else if (currentPage === 'pernikahan') {
+                renderWedding(area);
             } else if (currentPage === 'keuangan') {
                 renderFinanceOverview(area);
             } else {
-                area.innerHTML = `<div class="p-20 text-center text-gray-300 italic uppercase tracking-widest text-xs">Modul ${currentPage} Aktif<br>Data Sedang Dimuat...</div>`;
+                area.innerHTML = `<div class="p-20 text-center text-gray-300 italic uppercase tracking-widest text-xs">Modul ${currentPage} Aktif</div>`;
             }
             lucide.createIcons();
+        }
+
+        function renderDashboard(area) {
+            const db = rawData.keuangan || [];
+            const totalMasuk = db.filter(d => d.Tipe === 'Masuk').reduce((a,c) => a + Number(c.Nominal || 0), 0);
+            const totalKeluar = db.filter(d => d.Tipe === 'Keluar').reduce((a,c) => a + Number(c.Nominal || 0), 0);
+            const saldo = totalMasuk - totalKeluar;
+            area.innerHTML = `
+                <div class="bg-blue-800 p-8 rounded-[40px] text-white shadow-2xl mb-8">
+                    <p class="text-[10px] opacity-60 uppercase font-bold mb-2 tracking-widest">Saldo Saat Ini</p>
+                    <h2 class="text-3xl md:text-5xl font-bold italic">Rp ${saldo.toLocaleString('id-ID')}</h2>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white p-6 rounded-3xl border border-gray-100">
+                        <p class="text-[10px] text-green-500 font-bold uppercase mb-1">Total Masuk</p>
+                        <p class="font-bold text-gray-800">Rp ${totalMasuk.toLocaleString('id-ID')}</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-3xl border border-gray-100">
+                        <p class="text-[10px] text-red-500 font-bold uppercase mb-1">Total Keluar</p>
+                        <p class="font-bold text-gray-800">Rp ${totalKeluar.toLocaleString('id-ID')}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderWedding(area) {
+            const stats = rawData.wedding_stats || { progress: 0, countdown: 0 };
+            area.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-gradient-to-br from-rose-500 to-pink-600 p-8 rounded-[40px] text-white shadow-xl relative overflow-hidden">
+                        <i data-lucide="calendar" class="absolute right-[-10px] bottom-[-10px] w-32 h-32 opacity-20"></i>
+                        <p class="text-[10px] opacity-80 uppercase font-bold mb-1 tracking-widest">Menuju Hari Bahagia</p>
+                        <h2 class="text-5xl font-bold">${stats.countdown} <span class="text-xl italic font-light">Hari Lagi</span></h2>
+                    </div>
+                    <div class="bg-white p-8 rounded-[40px] shadow-sm border border-gray-100">
+                        <div class="flex justify-between items-end mb-4">
+                            <div>
+                                <p class="text-[10px] text-gray-400 uppercase font-bold mb-1">Kesiapan Persiapan</p>
+                                <h3 class="text-3xl font-bold text-gray-800">${stats.progress}%</h3>
+                            </div>
+                            <i data-lucide="check-circle" class="text-green-500 mb-1"></i>
+                        </div>
+                        <div class="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
+                            <div class="bg-green-500 h-full transition-all duration-1000" style="width: ${stats.progress}%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    ${['Daftar Tugas', 'Anggaran', 'Vendor', 'Daftar Tamu', 'Konsep', 'Dokumen'].map(m => `
+                        <div class="bg-white p-6 rounded-[32px] border border-gray-100 hover:border-rose-200 transition-all cursor-pointer shadow-sm text-center group">
+                            <div class="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500 mx-auto mb-3 group-hover:scale-110 transition">
+                                <i data-lucide="${getWeddingIcon(m)}"></i>
+                            </div>
+                            <p class="text-xs font-bold text-gray-700">${m}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function getWeddingIcon(menu) {
+            const map = { 'Daftar Tugas': 'list-todo', 'Anggaran': 'banknote', 'Vendor': 'users', 'Daftar Tamu': 'user-plus', 'Konsep': 'palette', 'Dokumen': 'file-text' };
+            return map[menu] || 'heart';
         }
 
         function renderFinanceOverview(area) {
@@ -170,18 +207,15 @@
                         <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden"><div class="bg-blue-600 h-full" style="width: ${(pengeluaranBulanIni/budgetBulanIni)*100}%"></div></div>
                     </div>
                 </div>
-
                 <div onclick="renderDetail('Tagihan')" class="bg-white p-6 rounded-[32px] card-shadow mb-4 cursor-pointer border-2 border-transparent hover:border-orange-600 transition-all">
                     <div class="flex justify-between items-center mb-2"><h3 class="font-bold text-gray-800">TAGIHAN</h3><i data-lucide="chevron-right" class="w-4 text-gray-300"></i></div>
-                    <p class="text-xs text-gray-400 font-semibold text-orange-500 uppercase tracking-tighter">Kelola Jatuh Tempo Bulanan</p>
+                    <p class="text-xs text-orange-500 font-bold uppercase tracking-tighter">Kelola Jatuh Tempo</p>
                 </div>
-
                 <div onclick="renderDetail('Tabungan')" class="bg-white p-6 rounded-[32px] card-shadow cursor-pointer border-2 border-transparent hover:border-green-600 transition-all">
                     <div class="flex justify-between items-center mb-2"><h3 class="font-bold text-gray-800">TABUNGAN</h3><i data-lucide="chevron-right" class="w-4 text-gray-300"></i></div>
                     <p class="text-2xl font-bold text-green-600 italic">Rp ${totalTabungan.toLocaleString()}</p>
                 </div>
             `;
-            lucide.createIcons();
         }
 
         function renderDetail(grup) {
@@ -189,7 +223,7 @@
             const items = (rawData.keuangan || []).filter(d => d.Grup === grup);
             activeGrup = grup;
 
-            let headerAction = `
+            let header = `
                 <button onclick="nav('keuangan')" class="text-[10px] font-bold text-gray-400 mb-4 flex items-center gap-2 uppercase tracking-widest"><i data-lucide="arrow-left" class="w-3"></i> Kembali</button>
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold text-gray-800 uppercase italic">${grup}</h2>
@@ -197,66 +231,21 @@
                 </div>
             `;
 
-            if (grup === 'Arus Kas') {
-                area.innerHTML = headerAction + `
-                    <div class="space-y-3">
-                        ${items.reverse().map(item => `
-                            <div class="bg-white p-5 rounded-3xl card-shadow border border-gray-50 flex justify-between items-center">
-                                <div>
-                                    <p class="text-[10px] font-bold text-blue-500 uppercase mb-0.5">${item.Kategori}</p>
-                                    <p class="font-bold text-gray-800">${item.Keterangan}</p>
-                                    <p class="text-[9px] text-gray-300 uppercase">${new Date(item.Tanggal).toLocaleDateString()}</p>
-                                </div>
-                                <p class="font-bold ${item.Tipe === 'Masuk' ? 'text-green-600' : 'text-red-500'}">
-                                    ${item.Tipe === 'Masuk' ? '+' : '-'} Rp ${Number(item.Nominal).toLocaleString()}
-                                </p>
+            area.innerHTML = header + `
+                <div class="space-y-3">
+                    ${items.reverse().map(item => `
+                        <div class="bg-white p-5 rounded-3xl card-shadow border border-gray-50 flex justify-between items-center">
+                            <div>
+                                <p class="text-[10px] font-bold text-blue-500 uppercase mb-0.5">${item.Kategori}</p>
+                                <p class="font-bold text-gray-800">${item.Keterangan}</p>
+                                <p class="text-[9px] text-gray-300 uppercase">${item.Tanggal ? new Date(item.Tanggal).toLocaleDateString() : '-'}</p>
                             </div>
-                        `).join('')}
-                    </div>`;
-            } else if (grup === 'Tagihan') {
-                area.innerHTML = headerAction + `
-                    <div class="flex gap-2 mb-6 overflow-x-auto no-scrollbar pb-2">
-                        ${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'].map((m, i) => `
-                            <button class="px-5 py-2 rounded-xl text-xs font-bold shrink-0 ${new Date().getMonth() === i ? 'bg-orange-500 text-white shadow-md' : 'bg-white text-gray-400 border border-gray-100'}">${m}</button>
-                        `).join('')}
-                    </div>
-                    <div class="space-y-3">
-                        ${items.reverse().map(item => `
-                            <div class="bg-white p-5 rounded-3xl card-shadow border border-gray-50">
-                                <div class="flex justify-between mb-3">
-                                    <p class="font-bold text-gray-800">${item.Keterangan}</p>
-                                    <span class="text-[9px] px-3 py-1 rounded-full font-bold ${item.Status === 'Lunas' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'} uppercase tracking-wider">${item.Status || 'Belum Lunas'}</span>
-                                </div>
-                                <div class="flex justify-between items-end">
-                                    <div>
-                                        <p class="text-[10px] text-gray-400 uppercase font-bold">Tempo</p>
-                                        <p class="text-sm text-gray-800 font-bold">${item.Kategori}</p>
-                                    </div>
-                                    <p class="font-bold text-lg text-gray-800">Rp ${Number(item.Nominal).toLocaleString()}</p>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>`;
-            } else if (grup === 'Tabungan') {
-                const tabunganMap = {};
-                items.forEach(d => { tabunganMap[d.Kategori] = (tabunganMap[d.Kategori] || 0) + Number(d.Nominal); });
-                area.innerHTML = headerAction + `
-                    <div class="bg-green-600 p-8 rounded-[32px] text-white mb-6 shadow-xl italic">
-                        <p class="text-[10px] opacity-70 uppercase font-bold mb-1">Total Saldo Terkumpul</p>
-                        <h2 class="text-3xl font-bold">Rp ${Object.values(tabunganMap).reduce((a,b)=>a+b, 0).toLocaleString()}</h2>
-                    </div>
-                    <div class="grid grid-cols-1 gap-3">
-                        ${Object.entries(tabunganMap).map(([cat, val]) => `
-                            <div class="bg-white p-5 rounded-3xl border border-gray-100 flex justify-between items-center card-shadow">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600"><i data-lucide="landmark" class="w-5"></i></div>
-                                    <p class="font-bold text-gray-700">${cat}</p>
-                                </div>
-                                <p class="font-bold text-gray-800">Rp ${val.toLocaleString()}</p>
-                            </div>
-                        `).join('')}
-                    </div>`;
-            }
+                            <p class="font-bold ${item.Tipe === 'Masuk' ? 'text-green-600' : 'text-red-500'}">
+                                ${item.Tipe === 'Masuk' ? '+' : '-'} Rp ${Number(item.Nominal).toLocaleString()}
+                            </p>
+                        </div>
+                    `).join('')}
+                </div>`;
             lucide.createIcons();
         }
 
@@ -278,48 +267,27 @@
                         <option value="Keluar">Uang Keluar (-)</option><option value="Masuk">Uang Masuk (+)</option>
                     </select>
                     <div id="cat-wrapper">
-                        <select id="in-kategori" onchange="checkLainnya(this.value)" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none">
+                        <select id="in-kategori" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none">
                             ${CATEGORIES.Keluar.map(c => `<option value="${c}">${c}</option>`).join('')}
                         </select>
                     </div>
-                    <input type="text" id="in-kategori-custom" placeholder="Sebutkan kategori..." class="w-full p-4 bg-yellow-50 rounded-2xl border border-yellow-100 outline-none hidden">
                 `;
-            } else if (grup === 'Tagihan') {
-                html += `<input type="text" id="in-kategori" placeholder="Jatuh Tempo (Misal: 25 Mei)" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none">
-                         <select id="in-status" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none"><option value="Belum Lunas">BELUM LUNAS</option><option value="Lunas">LUNAS</option></select>
-                         <input type="hidden" id="in-tipe" value="Keluar">`;
-            } else if (grup === 'Tabungan') {
-                html += `<select id="in-kategori" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none">
-                            <option value="Bank BCA">Bank BCA</option><option value="E-Wallet">E-Wallet</option><option value="Investasi">Investasi</option><option value="Tunai">Tunai</option>
-                         </select><input type="hidden" id="in-tipe" value="Masuk">`;
+            } else {
+                html += `<input type="text" id="in-kategori" placeholder="Kategori" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none">
+                         <input type="hidden" id="in-tipe" value="${grup === 'Tabungan' ? 'Masuk' : 'Keluar'}">`;
             }
             fields.innerHTML = html;
         }
 
-        function updateCategoryDropdown(tipe) {
-            const wrapper = document.getElementById('cat-wrapper');
-            wrapper.innerHTML = `<select id="in-kategori" onchange="checkLainnya(this.value)" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none">
-                ${CATEGORIES[tipe].map(c => `<option value="${c}">${c}</option>`).join('')}
-            </select>`;
-        }
-
-        function checkLainnya(val) {
-            const custom = document.getElementById('in-kategori-custom');
-            val === 'Lainnya' ? custom.classList.remove('hidden') : custom.classList.add('hidden');
-        }
-
         async function submitData() {
             const btn = document.getElementById('btn-save');
-            const catVal = document.getElementById('in-kategori')?.value;
-            const customCat = document.getElementById('in-kategori-custom')?.value;
-
             const payload = {
                 grup: activeGrup,
                 keterangan: document.getElementById('in-keterangan').value,
                 nominal: document.getElementById('in-nominal').value,
-                kategori: (catVal === 'Lainnya' && customCat) ? customCat : catVal,
+                kategori: document.getElementById('in-kategori').value,
                 tipe: document.getElementById('in-tipe')?.value || 'Keluar',
-                status: document.getElementById('in-status')?.value || 'Selesai'
+                status: 'Selesai'
             };
 
             if(!payload.keterangan || !payload.nominal) return alert("Lengkapi data!");
@@ -328,7 +296,7 @@
             try {
                 await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
                 toggleModal(); setTimeout(loadData, 1000);
-            } catch (e) { alert("Error koneksi!"); }
+            } catch (e) { alert("Error!"); }
             finally { btn.innerText = "Simpan"; btn.disabled = false; }
         }
 
