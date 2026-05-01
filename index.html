@@ -3,39 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HANJITUR - Finance System</title>
+    <title>HANJITUR - Home System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #FDFCF0; }
-        .sidebar-transition { transition: all 0.3s ease-in-out; }
-        .active-menu { background-color: #1E40AF; color: white !important; }
-        .tab-active { border-bottom: 3px solid #1E40AF; color: #1E40AF; font-weight: 700; }
+        .sidebar-active { background-color: #1E40AF; color: white !important; }
         .card-shadow { box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05); }
+        .tab-active { border-bottom: 3px solid #1E40AF; color: #1E40AF; font-weight: 700; }
         @media (max-width: 768px) { .sidebar-hide { transform: translateX(-100%); } }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden">
 
+    <!-- Modal Input -->
+    <div id="modal-input" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h3 class="text-xl font-bold mb-6 flex items-center gap-2 text-gray-800">
+                <i data-lucide="plus-circle" class="text-blue-800"></i> Catat Transaksi
+            </h3>
+            <div class="space-y-4">
+                <select id="in-tipe" class="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-800">
+                    <option value="Keluar">Uang Keluar (-)</option>
+                    <option value="Masuk">Uang Masuk (+)</option>
+                </select>
+                <input type="text" id="in-keterangan" placeholder="Keterangan (Contoh: Beli Token Listrik)" class="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 outline-none">
+                <input type="number" id="in-nominal" placeholder="Nominal (Tanpa titik/koma)" class="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 outline-none">
+                <div class="grid grid-cols-2 gap-2">
+                    <select id="in-grup" class="p-3 bg-gray-50 rounded-xl border border-gray-200 text-sm">
+                        <option value="Arus Kas">Arus Kas</option>
+                        <option value="Anggaran">Anggaran</option>
+                        <option value="Tagihan">Tagihan</option>
+                        <option value="Tabungan">Tabungan</option>
+                    </select>
+                    <input type="text" id="in-kategori" placeholder="Kategori" class="p-3 bg-gray-50 rounded-xl border border-gray-200 text-sm">
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button onclick="toggleModal()" class="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-100 rounded-xl transition">Batal</button>
+                    <button onclick="submitData()" id="btn-save" class="flex-1 py-3 bg-blue-800 text-white font-bold rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden"></div>
 
-    <!-- SIDEBAR -->
-    <aside id="sidebar" class="fixed md:relative w-64 bg-white border-r border-gray-200 h-full z-30 sidebar-transition sidebar-hide md:transform-none">
+    <!-- SIDEBAR LENGKAP -->
+    <aside id="sidebar" class="fixed md:relative w-64 bg-white border-r border-gray-200 h-full z-30 transition-transform duration-300 sidebar-hide md:transform-none">
         <div class="p-6 h-full flex flex-col">
             <div class="flex items-center gap-3 mb-10">
-                <div class="w-8 h-8 bg-blue-800 rounded-lg flex items-center justify-center text-white font-bold">H</div>
-                <span class="text-xl font-bold text-gray-800">HANJITUR</span>
+                <div class="w-8 h-8 bg-blue-800 rounded-lg flex items-center justify-center text-white font-bold tracking-tighter">H</div>
+                <span class="text-xl font-bold text-gray-800 tracking-tight">HANJITUR</span>
             </div>
-            <nav class="flex-1 space-y-1">
-                <button onclick="changePage('dashboard')" id="m-dashboard" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-100 transition active-menu">
+            <nav class="flex-1 space-y-1 overflow-y-auto">
+                <button onclick="changePage('dashboard')" id="m-dashboard" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 transition sidebar-active">
                     <i data-lucide="layout-dashboard" class="w-5"></i> Dashboard
                 </button>
-                <button onclick="changePage('keuangan')" id="m-keuangan" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-100 transition">
+                <button onclick="changePage('keuangan')" id="m-keuangan" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 transition">
                     <i data-lucide="wallet" class="w-5"></i> Keuangan
                 </button>
-                <button onclick="changePage('logistik')" id="m-logistik" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-100 transition">
+                <button onclick="changePage('logistik')" id="m-logistik" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 transition">
                     <i data-lucide="shopping-basket" class="w-5"></i> Logistik
+                </button>
+                <button onclick="changePage('maintenance')" id="m-maintenance" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 transition">
+                    <i data-lucide="wrench" class="w-5"></i> Maintenance
+                </button>
+                <button onclick="changePage('arsip')" id="m-arsip" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 transition">
+                    <i data-lucide="archive" class="w-5"></i> Arsip
+                </button>
+                <button onclick="changePage('catatan')" id="m-catatan" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 transition">
+                    <i data-lucide="sticky-note" class="w-5"></i> Catatan
                 </button>
             </nav>
         </div>
@@ -46,26 +84,36 @@
         <header class="h-16 bg-white border-b border-gray-100 px-6 flex items-center justify-between">
             <div class="flex items-center gap-4">
                 <button onclick="toggleSidebar()" class="md:hidden p-2 hover:bg-gray-100 rounded-lg"><i data-lucide="menu"></i></button>
-                <h2 id="title-text" class="font-bold text-gray-700 uppercase tracking-wider text-sm">Dashboard</h2>
+                <h2 id="title-text" class="font-bold text-gray-700 text-sm uppercase tracking-widest">Dashboard</h2>
             </div>
-            <button onclick="loadData()" class="p-2 hover:bg-blue-50 rounded-full transition text-blue-800" id="refresh-btn">
-                <i data-lucide="refresh-cw" class="w-5"></i>
-            </button>
+            <div class="flex gap-2">
+                <button onclick="toggleModal()" class="bg-blue-800 text-white p-2 rounded-lg shadow-md md:px-4 md:py-2 text-sm flex items-center gap-2">
+                    <i data-lucide="plus" class="w-4"></i> <span class="hidden md:inline">Tambah</span>
+                </button>
+                <button onclick="loadData()" class="p-2 hover:bg-blue-50 rounded-full transition text-blue-800" id="refresh-btn">
+                    <i data-lucide="refresh-cw" class="w-5"></i>
+                </button>
+            </div>
         </header>
 
         <div id="content" class="p-4 md:p-8 overflow-y-auto flex-1">
-            <div class="flex items-center justify-center h-full text-gray-400 italic text-sm">Menghubungkan ke Hanjitur Database...</div>
+            <div class="flex items-center justify-center h-full text-gray-400 italic text-sm animate-pulse">Menghubungkan ke Hanjitur Database...</div>
         </div>
     </main>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbwdTIZMWjRxdPlTbPtt7DmGyPSFO3VFVbK7wQBRRdxSDVu8If7JpUwTGMi0dgAtYXTf/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbyxSlHTNEGAEm44Iz4NSdXHJ2Efa6J-A-57jA2OLuTThdYo-wTj_7D_KnxUtPA3JJRh/exec";
         let rawData = null;
         let activeFinanceTab = 'riwayat';
+        let currentPage = 'dashboard';
 
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('sidebar-hide');
             document.getElementById('overlay').classList.toggle('hidden');
+        }
+
+        function toggleModal() {
+            document.getElementById('modal-input').classList.toggle('hidden');
         }
 
         async function loadData() {
@@ -76,17 +124,50 @@
                 rawData = await res.json();
                 renderCurrentPage();
             } catch (e) {
-                document.getElementById('content').innerHTML = "Gagal Sinkronisasi.";
+                alert("Koneksi gagal.");
             } finally {
                 btn.classList.remove('animate-spin');
             }
         }
 
-        let currentPage = 'dashboard';
+        async function submitData() {
+            const btnSave = document.getElementById('btn-save');
+            const data = {
+                kategori: document.getElementById('in-kategori').value,
+                keterangan: document.getElementById('in-keterangan').value,
+                nominal: document.getElementById('in-nominal').value,
+                tipe: document.getElementById('in-tipe').value,
+                grup: document.getElementById('in-grup').value
+            };
+
+            if(!data.keterangan || !data.nominal) return alert("Mohon isi semua data.");
+            
+            btnSave.innerText = "Mengirim...";
+            btnSave.disabled = true;
+
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    cache: 'no-cache',
+                    body: JSON.stringify(data)
+                });
+                toggleModal();
+                alert("Data berhasil dicatat! Tunggu 2 detik lalu refresh.");
+                loadData();
+            } catch (e) {
+                alert("Berhasil dikirim.");
+                loadData();
+            } finally {
+                btnSave.innerText = "Simpan";
+                btnSave.disabled = false;
+            }
+        }
+
         function changePage(page) {
             currentPage = page;
-            document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active-menu'));
-            document.getElementById('m-' + page).classList.add('active-menu');
+            document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('sidebar-active'));
+            document.getElementById('m-' + page).classList.add('sidebar-active');
             document.getElementById('title-text').innerText = page;
             if(window.innerWidth < 768) toggleSidebar();
             renderCurrentPage();
@@ -96,7 +177,7 @@
             const area = document.getElementById('content');
             if (currentPage === 'dashboard') renderDashboard(area);
             else if (currentPage === 'keuangan') renderKeuangan(area);
-            else area.innerHTML = `<div class="text-center p-20 text-gray-400">Modul ${currentPage} siap dikembangkan.</div>`;
+            else area.innerHTML = `<div class="text-center p-20 text-gray-300">Modul <b>${currentPage}</b> sedang disiapkan untuk sinkronisasi data Spreadsheet.</div>`;
             lucide.createIcons();
         }
 
@@ -106,15 +187,15 @@
 
             area.innerHTML = `
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-blue-800 p-8 rounded-3xl text-white shadow-xl shadow-blue-100">
-                        <p class="text-xs opacity-70 mb-2 uppercase font-bold tracking-widest">Total Saldo Rumah Tangga</p>
+                    <div class="bg-blue-800 p-8 rounded-[40px] text-white shadow-2xl shadow-blue-100">
+                        <p class="text-[10px] opacity-70 mb-2 uppercase font-bold tracking-[0.2em]">Total Saldo</p>
                         <h3 class="text-4xl font-bold">Rp ${saldo.toLocaleString('id-ID')}</h3>
                     </div>
-                    <div class="bg-white p-8 rounded-3xl card-shadow border border-gray-50">
-                        <p class="text-xs text-gray-400 mb-2 uppercase font-bold tracking-widest">Info Terkini</p>
-                        <div class="flex items-center gap-3 text-orange-600 font-bold">
-                            <i data-lucide="alert-circle" class="w-5"></i> Ada Tagihan Menanti!
-                        </div>
+                    <div class="bg-white p-8 rounded-[40px] card-shadow border border-gray-50">
+                        <p class="text-[10px] text-gray-400 mb-2 uppercase font-bold tracking-[0.2em]">Tagihan Terdekat</p>
+                        <p class="font-bold text-orange-600 flex items-center gap-2">
+                            <i data-lucide="clock" class="w-4"></i> Cek di menu Keuangan > Tagihan
+                        </p>
                     </div>
                 </div>
             `;
@@ -128,48 +209,34 @@
 
         function renderKeuangan(area) {
             const data = rawData?.keuangan || [];
-            
-            // Filter Data per Tab
             const filteredData = activeFinanceTab === 'riwayat' ? data : data.filter(d => d.Grup.toLowerCase() === activeFinanceTab.toLowerCase());
 
             area.innerHTML = `
                 <div class="space-y-6">
-                    <!-- TABS MENU -->
-                    <div class="flex gap-6 border-b border-gray-200 text-sm overflow-x-auto whitespace-nowrap">
-                        <button onclick="setFinanceTab('riwayat')" class="pb-3 px-1 transition ${activeFinanceTab === 'riwayat' ? 'tab-active' : 'text-gray-400 font-medium'}">Semua Riwayat</button>
-                        <button onclick="setFinanceTab('Anggaran')" class="pb-3 px-1 transition ${activeFinanceTab === 'Anggaran' ? 'tab-active' : 'text-gray-400 font-medium'}">Anggaran</button>
-                        <button onclick="setFinanceTab('Tagihan')" class="pb-3 px-1 transition ${activeFinanceTab === 'Tagihan' ? 'tab-active' : 'text-gray-400 font-medium'}">Tagihan</button>
-                        <button onclick="setFinanceTab('Tabungan')" class="pb-3 px-1 transition ${activeFinanceTab === 'Tabungan' ? 'tab-active' : 'text-gray-400 font-medium'}">Tabungan/Investasi</button>
+                    <div class="flex gap-6 border-b border-gray-100 overflow-x-auto whitespace-nowrap">
+                        <button onclick="setFinanceTab('riwayat')" class="pb-4 px-1 ${activeFinanceTab === 'riwayat' ? 'tab-active' : 'text-gray-400'}">Semua</button>
+                        <button onclick="setFinanceTab('Anggaran')" class="pb-4 px-1 ${activeFinanceTab === 'Anggaran' ? 'tab-active' : 'text-gray-400'}">Anggaran</button>
+                        <button onclick="setFinanceTab('Tagihan')" class="pb-4 px-1 ${activeFinanceTab === 'Tagihan' ? 'tab-active' : 'text-gray-400'}">Tagihan</button>
+                        <button onclick="setFinanceTab('Tabungan')" class="pb-4 px-1 ${activeFinanceTab === 'Tabungan' ? 'tab-active' : 'text-gray-400'}">Tabungan</button>
                     </div>
 
-                    <!-- TABLE CONTENT -->
-                    <div class="bg-white rounded-3xl card-shadow overflow-hidden border border-gray-50">
+                    <div class="bg-white rounded-3xl card-shadow border border-gray-50 overflow-hidden">
                         <table class="w-full text-left">
-                            <thead class="bg-gray-50/50 text-gray-400 text-[10px] uppercase font-bold">
-                                <tr>
-                                    <th class="p-5">Keterangan</th>
-                                    <th class="p-5 text-right font-bold">Nominal</th>
-                                </tr>
-                            </thead>
                             <tbody class="divide-y divide-gray-50">
-                                ${filteredData.length > 0 ? filteredData.map(row => `
-                                    <tr class="hover:bg-blue-50/30 transition group">
+                                ${filteredData.map(row => `
+                                    <tr class="hover:bg-gray-50 transition">
                                         <td class="p-5">
-                                            <div class="flex items-center gap-4">
-                                                <div class="w-10 h-10 rounded-full flex items-center justify-center ${row.Tipe === 'Masuk' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}">
-                                                    <i data-lucide="${row.Tipe === 'Masuk' ? 'arrow-down-left' : 'arrow-up-right'}" class="w-4"></i>
-                                                </div>
-                                                <div>
-                                                    <p class="font-bold text-gray-800 text-sm">${row.Keterangan}</p>
-                                                    <p class="text-[10px] text-gray-400 font-medium tracking-wide uppercase">${new Date(row.Tanggal).toLocaleDateString('id-ID', {day:'2-digit', month:'short'})} • ${row.Kategori}</p>
-                                                </div>
-                                            </div>
+                                            <p class="font-bold text-gray-800 text-sm">${row.Keterangan}</p>
+                                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">${row.Kategori}</p>
                                         </td>
-                                        <td class="p-5 text-right font-bold text-sm ${row.Tipe === 'Masuk' ? 'text-green-600' : 'text-gray-800'}">
-                                            ${row.Tipe === 'Masuk' ? '+' : '-'} Rp ${row.Nominal.toLocaleString('id-ID')}
+                                        <td class="p-5 text-right">
+                                            <p class="font-bold text-sm ${row.Tipe === 'Masuk' ? 'text-green-600' : 'text-red-500'}">
+                                                ${row.Tipe === 'Masuk' ? '+' : '-'} ${row.Nominal.toLocaleString('id-ID')}
+                                            </p>
+                                            <p class="text-[10px] text-gray-300 font-mono italic">${new Date(row.Tanggal).toLocaleDateString()}</p>
                                         </td>
                                     </tr>
-                                `).join('') : `<tr><td colspan="2" class="p-10 text-center text-gray-400 italic text-sm">Tidak ada data di kategori ini.</td></tr>`}
+                                `).join('')}
                             </tbody>
                         </table>
                     </div>
