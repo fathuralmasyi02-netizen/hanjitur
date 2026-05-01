@@ -11,23 +11,18 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #FDFCF0; margin: 0; }
         .sidebar-active { background-color: #1E40AF; color: white !important; }
         .card-shadow { box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05); }
-        
-        /* Layout Fix */
         .app-container { height: 100vh; display: flex; overflow: hidden; }
         .main-content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
         .scroll-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 100px; }
-
-        @media (max-width: 768px) { 
-            .sidebar-hide { transform: translateX(-100%); } 
-        }
+        @media (max-width: 768px) { .sidebar-hide { transform: translateX(-100%); } }
     </style>
 </head>
 <body class="app-container">
 
-    <!-- Modal -->
+    <!-- Modal Input -->
     <div id="modal-input" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-[32px] p-8 shadow-2xl">
-            <h3 id="modal-title" class="text-xl font-bold mb-6 text-gray-800">Input Data</h3>
+            <h3 id="modal-title" class="text-xl font-bold mb-6 text-gray-800">Catat Data</h3>
             <div id="modal-fields" class="space-y-4"></div>
             <div class="flex gap-3 pt-6">
                 <button onclick="toggleModal()" class="flex-1 py-4 text-gray-400 font-bold hover:bg-gray-50 rounded-2xl">Batal</button>
@@ -45,18 +40,12 @@
                 <div class="w-8 h-8 bg-blue-800 rounded-lg flex items-center justify-center text-white font-bold">H</div>
                 <span class="text-xl font-bold text-gray-800 tracking-tight">HANJITUR</span>
             </div>
-            <nav class="flex-1 space-y-1 overflow-y-auto">
+            <nav class="flex-1 space-y-1">
                 <button onclick="nav('dashboard')" id="m-dashboard" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition sidebar-active">
                     <i data-lucide="layout-dashboard" class="w-5"></i> Dashboard
                 </button>
                 <button onclick="nav('keuangan')" id="m-keuangan" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
                     <i data-lucide="wallet" class="w-5"></i> Keuangan
-                </button>
-                <button onclick="nav('logistik')" id="m-logistik" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
-                    <i data-lucide="shopping-basket" class="w-5"></i> Logistik
-                </button>
-                <button onclick="nav('maintenance')" id="m-maintenance" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
-                    <i data-lucide="wrench" class="w-5"></i> Maintenance
                 </button>
                 <button onclick="nav('arsip')" id="m-arsip" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
                     <i data-lucide="archive" class="w-5"></i> Arsip
@@ -80,14 +69,14 @@
         </header>
 
         <div id="content" class="scroll-area p-4 md:p-8">
-            <div class="flex flex-col items-center justify-center h-64 text-gray-400 italic">Memuat...</div>
+            <div class="flex justify-center py-20 text-gray-400 italic animate-pulse">Menghubungkan ke Engine...</div>
         </div>
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbx0AEpy-mWJkCAk2RefEObZ17yLKQeX_3wcbpmf71u0B6mRHYtgst-WBDkG3JfaRDEC/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxSvzHjoMcCD4yfIK_EHUZh7dWAMPQMsgE_5u2iV9jBS_-NpuVultcQcYDNbKrf8wla/exec";
         
-        let rawData = { keuangan: [], budget: [] };
+        let rawData = {}; 
         let currentPage = 'dashboard';
         let activeGrup = null;
 
@@ -96,16 +85,14 @@
             document.getElementById('overlay').classList.toggle('hidden');
         }
 
-        // Fungsi Navigasi Utama
         function nav(page) {
             currentPage = page;
-            if (window.innerWidth < 768) toggleSidebar();
-            
-            // Update UI Sidebar
+            if (window.innerWidth < 768 && !document.getElementById('sidebar').classList.contains('sidebar-hide')) {
+                toggleSidebar();
+            }
             document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('sidebar-active'));
             document.getElementById('m-' + page)?.classList.add('sidebar-active');
             document.getElementById('title-text').innerText = page;
-            
             render();
         }
 
@@ -115,9 +102,10 @@
             try {
                 const res = await fetch(API_URL);
                 rawData = await res.json();
+                console.log("Data diterima:", rawData); // Untuk debug di console browser
                 render();
             } catch (e) {
-                document.getElementById('content').innerHTML = "Koneksi Error.";
+                document.getElementById('content').innerHTML = "Gagal Load Data.";
             } finally {
                 btn?.classList.remove('animate-spin');
                 lucide.createIcons();
@@ -128,81 +116,66 @@
             const area = document.getElementById('content');
             area.scrollTop = 0;
 
+            // PENTING: Gunakan rawData['keuangan'] (lowercase) sesuai code.gs Anda
+            const dbKeuangan = rawData['keuangan'] || [];
+
             if (currentPage === 'dashboard') {
-                const list = rawData.keuangan || [];
-                let saldo = list.reduce((a, c) => c.Tipe === 'Masuk' ? a + Number(c.Nominal) : a - Number(c.Nominal), 0);
+                let saldo = dbKeuangan.reduce((a, c) => c.Tipe === 'Masuk' ? a + Number(c.Nominal || 0) : a - Number(c.Nominal || 0), 0);
                 area.innerHTML = `
                     <div class="bg-blue-800 p-8 md:p-12 rounded-[40px] text-white shadow-2xl mb-8">
-                        <p class="text-[10px] opacity-60 uppercase font-bold mb-2">Total Saldo</p>
-                        <h2 class="text-3xl md:text-5xl font-bold italic">Rp ${saldo.toLocaleString()}</h2>
+                        <p class="text-[10px] opacity-60 uppercase font-bold mb-2">Total Saldo (Engine)</p>
+                        <h2 class="text-3xl md:text-5xl font-bold italic">Rp ${saldo.toLocaleString('id-ID')}</h2>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="bg-white p-6 rounded-[32px] border border-gray-100"><p class="text-[10px] text-gray-400 font-bold uppercase mb-1 tracking-tighter">Status Mesin</p><p class="font-bold text-gray-700">Optimal</p></div>
-                        <div class="bg-white p-6 rounded-[32px] border border-gray-100"><p class="text-[10px] text-gray-400 font-bold uppercase mb-1 tracking-tighter">Logistik</p><p class="font-bold text-gray-700 italic text-sm">Synchronizing...</p></div>
+                        <div class="bg-white p-6 rounded-[32px] border border-gray-100"><p class="text-[10px] text-gray-400 font-bold uppercase mb-1">Status Database</p><p class="font-bold text-gray-700">${dbKeuangan.length} Baris Data</p></div>
+                        <div class="bg-white p-6 rounded-[32px] border border-gray-100"><p class="text-[10px] text-gray-400 font-bold uppercase mb-1">Last Sync</p><p class="font-bold text-gray-700">${new Date().toLocaleTimeString()}</p></div>
                     </div>
                 `;
             } 
             else if (currentPage === 'keuangan') {
-                const data = rawData.keuangan || [];
                 const sums = {
-                    cash: data.filter(d => d.Grup === 'Arus Kas').reduce((a,c)=> c.Tipe === 'Masuk' ? a + Number(c.Nominal) : a - Number(c.Nominal), 0),
-                    bill: data.filter(d => d.Grup === 'Tagihan' && d.Status === 'Belum').reduce((a,c)=> a + Number(c.Nominal), 0),
-                    save: data.filter(d => d.Grup === 'Tabungan').reduce((a,c)=> a + Number(c.Nominal), 0)
+                    cash: dbKeuangan.filter(d => d.Grup === 'Arus Kas').reduce((a,c)=> c.Tipe === 'Masuk' ? a + Number(c.Nominal) : a - Number(c.Nominal), 0),
+                    bill: dbKeuangan.filter(d => d.Grup === 'Tagihan').reduce((a,c)=> a + Number(c.Nominal), 0),
+                    save: dbKeuangan.filter(d => d.Grup === 'Tabungan').reduce((a,c)=> a + Number(c.Nominal), 0)
                 };
 
                 area.innerHTML = `
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div onclick="renderDetail('Arus Kas')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer hover:border-blue-800 border-2 border-transparent">
-                            <h3 class="font-bold text-gray-500 text-xs mb-2">ARUS KAS</h3>
-                            <div class="text-2xl font-bold text-blue-800 italic">Rp ${sums.cash.toLocaleString()}</div>
-                        </div>
-                        <div onclick="renderDetail('Anggaran')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer hover:border-indigo-800 border-2 border-transparent">
-                            <h3 class="font-bold text-gray-500 text-xs mb-2">ANGGARAN</h3>
-                            <div class="text-2xl font-bold text-indigo-800 italic">${rawData.budget?.length || 0} Item</div>
-                        </div>
-                        <div onclick="renderDetail('Tagihan')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer hover:border-orange-600 border-2 border-transparent">
-                            <h3 class="font-bold text-gray-500 text-xs mb-2">TAGIHAN (UNPAID)</h3>
-                            <div class="text-2xl font-bold text-orange-600 italic">Rp ${sums.bill.toLocaleString()}</div>
-                        </div>
-                        <div onclick="renderDetail('Tabungan')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer hover:border-green-600 border-2 border-transparent">
-                            <h3 class="font-bold text-gray-500 text-xs mb-2">TABUNGAN</h3>
-                            <div class="text-2xl font-bold text-green-600 italic">Rp ${sums.save.toLocaleString()}</div>
-                        </div>
+                        ${['Arus Kas', 'Tagihan', 'Tabungan'].map(g => `
+                            <div onclick="renderDetail('${g}')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer border-2 border-transparent hover:border-blue-800 transition">
+                                <h3 class="font-bold text-gray-400 text-xs mb-2 uppercase">${g}</h3>
+                                <div class="text-2xl font-bold text-gray-800 italic">Rp ${ (g==='Arus Kas' ? sums.cash : g==='Tagihan' ? sums.bill : sums.save).toLocaleString('id-ID') }</div>
+                            </div>
+                        `).join('')}
                     </div>
                 `;
             }
             else {
-                // Tampilan untuk Arsip, Catatan, dll
-                area.innerHTML = `
-                    <div class="bg-white p-12 rounded-[40px] border border-dashed border-gray-200 text-center flex flex-col items-center">
-                        <i data-lucide="box" class="w-12 h-12 text-gray-200 mb-4"></i>
-                        <h2 class="text-xl font-bold text-gray-700 mb-2">Modul ${currentPage.toUpperCase()}</h2>
-                        <p class="text-gray-400 max-w-xs text-sm">Area ini sedang dalam proses sinkronisasi database HANJITUR.</p>
-                    </div>
-                `;
+                area.innerHTML = `<div class="p-10 text-center text-gray-400 italic">Modul ${currentPage.toUpperCase()} siap dihubungkan.</div>`;
             }
             lucide.createIcons();
         }
 
         function renderDetail(grup) {
             const area = document.getElementById('content');
-            const items = (rawData.keuangan || []).filter(d => d.Grup === grup);
+            const dbKeuangan = rawData['keuangan'] || [];
+            const items = dbKeuangan.filter(d => d.Grup === grup);
             activeGrup = grup;
 
             area.innerHTML = `
                 <button onclick="nav('keuangan')" class="text-[10px] font-bold text-gray-400 mb-6 flex items-center gap-2"><i data-lucide="arrow-left" class="w-3"></i> KEMBALI</button>
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold text-gray-800">${grup}</h2>
-                    <button onclick="toggleModal('${grup}')" class="bg-blue-800 text-white px-5 py-2.5 rounded-2xl font-bold text-xs shadow-lg">+ Input</button>
+                    <button onclick="toggleModal('${grup}')" class="bg-blue-800 text-white px-5 py-2 rounded-2xl font-bold text-xs shadow-lg">+ Input</button>
                 </div>
-                <div class="bg-white rounded-[32px] overflow-hidden border border-gray-100 card-shadow overflow-x-auto">
-                    <table class="w-full text-left">
-                        <tr class="bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-widest"><th class="p-5">Deskripsi</th><th class="p-5 text-right">Nominal</th></tr>
-                        ${items.length === 0 ? '<tr><td colspan="2" class="p-10 text-center text-gray-300 italic text-sm">Belum ada data tercatat.</td></tr>' : 
+                <div class="bg-white rounded-[32px] border border-gray-100 card-shadow overflow-hidden">
+                    <table class="w-full text-left text-sm">
+                        <tr class="bg-gray-50 text-[10px] font-bold text-gray-400 uppercase"><th class="p-5">Item</th><th class="p-5 text-right">Nominal</th></tr>
+                        ${items.length === 0 ? '<tr><td colspan="2" class="p-10 text-center text-gray-300">Kosong</td></tr>' : 
                         items.reverse().map(row => `
                             <tr class="border-t border-gray-50">
-                                <td class="p-5"><div class="font-bold text-gray-800 text-sm">${row.Keterangan}</div><div class="text-[9px] text-gray-400 font-bold uppercase">${row.Kategori}</div></td>
-                                <td class="p-5 text-right font-bold ${row.Tipe === 'Masuk' ? 'text-green-600' : 'text-gray-800'} text-sm">${row.Tipe === 'Masuk' ? '+' : '-'} ${Number(row.Nominal).toLocaleString()}</td>
+                                <td class="p-5"><div class="font-bold text-gray-800">${row.Keterangan || '-'}</div><div class="text-[10px] text-gray-400 font-bold">${row.Kategori || '-'}</div></td>
+                                <td class="p-5 text-right font-bold ${row.Tipe === 'Masuk' ? 'text-green-600' : 'text-gray-800'}">Rp ${Number(row.Nominal || 0).toLocaleString('id-ID')}</td>
                             </tr>`).join('')}
                     </table>
                 </div>
@@ -227,19 +200,28 @@
 
         async function submitData() {
             const btn = document.getElementById('btn-save');
-            const data = {
+            const payload = {
                 grup: activeGrup,
                 keterangan: document.getElementById('in-keterangan').value,
                 nominal: document.getElementById('in-nominal').value,
                 kategori: document.getElementById('in-kategori').value,
-                tipe: document.getElementById('in-tipe')?.value || 'Keluar',
-                status: 'Lunas'
+                tipe: document.getElementById('in-tipe')?.value || 'Keluar'
             };
-            if(!data.keterangan || !data.nominal) return alert("Isi semua.");
-            btn.innerText = "...";
-            await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
-            toggleModal();
-            setTimeout(loadData, 1000);
+            if(!payload.keterangan || !payload.nominal) return alert("Mohon lengkapi data.");
+            
+            btn.innerText = "Processing...";
+            btn.disabled = true;
+
+            try {
+                await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+                toggleModal();
+                setTimeout(loadData, 1000);
+            } catch (e) {
+                alert("Gagal simpan");
+            } finally {
+                btn.innerText = "Simpan";
+                btn.disabled = false;
+            }
         }
 
         window.onload = loadData;
