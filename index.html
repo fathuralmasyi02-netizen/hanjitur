@@ -8,34 +8,34 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #FDFCF0; margin: 0; padding: 0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #FDFCF0; margin: 0; }
         .sidebar-active { background-color: #1E40AF; color: white !important; }
         .card-shadow { box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05); }
         
-        /* Fix Scroll & Viewport Mobile */
-        .main-wrapper { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        .scroll-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        /* Layout Fix */
+        .app-container { height: 100vh; display: flex; overflow: hidden; }
+        .main-content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        .scroll-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 100px; }
 
         @media (max-width: 768px) { 
             .sidebar-hide { transform: translateX(-100%); } 
         }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body class="app-container">
 
-    <!-- Modal Input Dinamis -->
+    <!-- Modal -->
     <div id="modal-input" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-[32px] p-8 shadow-2xl">
-            <h3 id="modal-title" class="text-xl font-bold mb-6 text-gray-800 uppercase tracking-tight">Catat Data</h3>
+            <h3 id="modal-title" class="text-xl font-bold mb-6 text-gray-800">Input Data</h3>
             <div id="modal-fields" class="space-y-4"></div>
             <div class="flex gap-3 pt-6">
-                <button onclick="toggleModal()" class="flex-1 py-4 text-gray-400 font-bold hover:bg-gray-50 rounded-2xl transition">Batal</button>
-                <button onclick="submitData()" id="btn-save" class="flex-1 py-4 bg-blue-800 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition">Simpan</button>
+                <button onclick="toggleModal()" class="flex-1 py-4 text-gray-400 font-bold hover:bg-gray-50 rounded-2xl">Batal</button>
+                <button onclick="submitData()" id="btn-save" class="flex-1 py-4 bg-blue-800 text-white font-bold rounded-2xl shadow-lg">Simpan</button>
             </div>
         </div>
     </div>
 
-    <!-- Overlay Mobile -->
     <div id="overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden"></div>
 
     <!-- Sidebar -->
@@ -46,31 +46,29 @@
                 <span class="text-xl font-bold text-gray-800 tracking-tight">HANJITUR</span>
             </div>
             <nav class="flex-1 space-y-1 overflow-y-auto">
-                <button onclick="navHandler('dashboard')" id="m-dashboard" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition sidebar-active">
+                <button onclick="nav('dashboard')" id="m-dashboard" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition sidebar-active">
                     <i data-lucide="layout-dashboard" class="w-5"></i> Dashboard
                 </button>
-                <button onclick="navHandler('keuangan')" id="m-keuangan" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
+                <button onclick="nav('keuangan')" id="m-keuangan" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
                     <i data-lucide="wallet" class="w-5"></i> Keuangan
                 </button>
-                <button onclick="navHandler('logistik')" id="m-logistik" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
+                <button onclick="nav('logistik')" id="m-logistik" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
                     <i data-lucide="shopping-basket" class="w-5"></i> Logistik
                 </button>
-                <button onclick="navHandler('maintenance')" id="m-maintenance" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
+                <button onclick="nav('maintenance')" id="m-maintenance" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
                     <i data-lucide="wrench" class="w-5"></i> Maintenance
                 </button>
-                <!-- Menu Arsip & Catatan Tetap Ada -->
-                <button onclick="navHandler('arsip')" id="m-arsip" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
+                <button onclick="nav('arsip')" id="m-arsip" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
                     <i data-lucide="archive" class="w-5"></i> Arsip
                 </button>
-                <button onclick="navHandler('catatan')" id="m-catatan" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
+                <button onclick="nav('catatan')" id="m-catatan" class="menu-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-gray-500 hover:bg-gray-50 transition">
                     <i data-lucide="sticky-note" class="w-5"></i> Catatan
                 </button>
             </nav>
         </div>
     </aside>
 
-    <!-- Main Content -->
-    <div class="main-wrapper flex-1 min-w-0">
+    <div class="main-content">
         <header class="h-16 bg-white border-b border-gray-100 px-6 flex items-center justify-between shrink-0">
             <div class="flex items-center gap-4">
                 <button onclick="toggleSidebar()" class="md:hidden p-2 hover:bg-gray-100 rounded-lg"><i data-lucide="menu"></i></button>
@@ -81,11 +79,8 @@
             </button>
         </header>
 
-        <div id="content" class="scroll-content p-4 md:p-8">
-            <div class="flex flex-col items-center justify-center h-64 text-gray-400">
-                <div class="animate-spin mb-4"><i data-lucide="refresh-cw"></i></div>
-                <p>Sinkronisasi sistem...</p>
-            </div>
+        <div id="content" class="scroll-area p-4 md:p-8">
+            <div class="flex flex-col items-center justify-center h-64 text-gray-400 italic">Memuat...</div>
         </div>
     </div>
 
@@ -93,25 +88,25 @@
         const API_URL = "https://script.google.com/macros/s/AKfycbx0AEpy-mWJkCAk2RefEObZ17yLKQeX_3wcbpmf71u0B6mRHYtgst-WBDkG3JfaRDEC/exec";
         
         let rawData = { keuangan: [], budget: [] };
-        let activeGrup = null;
         let currentPage = 'dashboard';
-
-        // Navigasi & Tutup Sidebar Otomatis di HP
-        function navHandler(page) {
-            if (window.innerWidth < 768) {
-                toggleSidebar();
-            }
-            
-            if (page === 'keuangan') {
-                openFinanceOverview();
-            } else {
-                changePage(page);
-            }
-        }
+        let activeGrup = null;
 
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('sidebar-hide');
             document.getElementById('overlay').classList.toggle('hidden');
+        }
+
+        // Fungsi Navigasi Utama
+        function nav(page) {
+            currentPage = page;
+            if (window.innerWidth < 768) toggleSidebar();
+            
+            // Update UI Sidebar
+            document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('sidebar-active'));
+            document.getElementById('m-' + page)?.classList.add('sidebar-active');
+            document.getElementById('title-text').innerText = page;
+            
+            render();
         }
 
         async function loadData() {
@@ -120,39 +115,119 @@
             try {
                 const res = await fetch(API_URL);
                 rawData = await res.json();
-                renderCurrentPage();
+                render();
             } catch (e) {
-                document.getElementById('content').innerHTML = `<div class="text-center py-20 text-red-500">Gagal memuat data. Periksa koneksi.</div>`;
+                document.getElementById('content').innerHTML = "Koneksi Error.";
             } finally {
                 btn?.classList.remove('animate-spin');
                 lucide.createIcons();
             }
         }
 
+        function render() {
+            const area = document.getElementById('content');
+            area.scrollTop = 0;
+
+            if (currentPage === 'dashboard') {
+                const list = rawData.keuangan || [];
+                let saldo = list.reduce((a, c) => c.Tipe === 'Masuk' ? a + Number(c.Nominal) : a - Number(c.Nominal), 0);
+                area.innerHTML = `
+                    <div class="bg-blue-800 p-8 md:p-12 rounded-[40px] text-white shadow-2xl mb-8">
+                        <p class="text-[10px] opacity-60 uppercase font-bold mb-2">Total Saldo</p>
+                        <h2 class="text-3xl md:text-5xl font-bold italic">Rp ${saldo.toLocaleString()}</h2>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white p-6 rounded-[32px] border border-gray-100"><p class="text-[10px] text-gray-400 font-bold uppercase mb-1 tracking-tighter">Status Mesin</p><p class="font-bold text-gray-700">Optimal</p></div>
+                        <div class="bg-white p-6 rounded-[32px] border border-gray-100"><p class="text-[10px] text-gray-400 font-bold uppercase mb-1 tracking-tighter">Logistik</p><p class="font-bold text-gray-700 italic text-sm">Synchronizing...</p></div>
+                    </div>
+                `;
+            } 
+            else if (currentPage === 'keuangan') {
+                const data = rawData.keuangan || [];
+                const sums = {
+                    cash: data.filter(d => d.Grup === 'Arus Kas').reduce((a,c)=> c.Tipe === 'Masuk' ? a + Number(c.Nominal) : a - Number(c.Nominal), 0),
+                    bill: data.filter(d => d.Grup === 'Tagihan' && d.Status === 'Belum').reduce((a,c)=> a + Number(c.Nominal), 0),
+                    save: data.filter(d => d.Grup === 'Tabungan').reduce((a,c)=> a + Number(c.Nominal), 0)
+                };
+
+                area.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div onclick="renderDetail('Arus Kas')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer hover:border-blue-800 border-2 border-transparent">
+                            <h3 class="font-bold text-gray-500 text-xs mb-2">ARUS KAS</h3>
+                            <div class="text-2xl font-bold text-blue-800 italic">Rp ${sums.cash.toLocaleString()}</div>
+                        </div>
+                        <div onclick="renderDetail('Anggaran')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer hover:border-indigo-800 border-2 border-transparent">
+                            <h3 class="font-bold text-gray-500 text-xs mb-2">ANGGARAN</h3>
+                            <div class="text-2xl font-bold text-indigo-800 italic">${rawData.budget?.length || 0} Item</div>
+                        </div>
+                        <div onclick="renderDetail('Tagihan')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer hover:border-orange-600 border-2 border-transparent">
+                            <h3 class="font-bold text-gray-500 text-xs mb-2">TAGIHAN (UNPAID)</h3>
+                            <div class="text-2xl font-bold text-orange-600 italic">Rp ${sums.bill.toLocaleString()}</div>
+                        </div>
+                        <div onclick="renderDetail('Tabungan')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer hover:border-green-600 border-2 border-transparent">
+                            <h3 class="font-bold text-gray-500 text-xs mb-2">TABUNGAN</h3>
+                            <div class="text-2xl font-bold text-green-600 italic">Rp ${sums.save.toLocaleString()}</div>
+                        </div>
+                    </div>
+                `;
+            }
+            else {
+                // Tampilan untuk Arsip, Catatan, dll
+                area.innerHTML = `
+                    <div class="bg-white p-12 rounded-[40px] border border-dashed border-gray-200 text-center flex flex-col items-center">
+                        <i data-lucide="box" class="w-12 h-12 text-gray-200 mb-4"></i>
+                        <h2 class="text-xl font-bold text-gray-700 mb-2">Modul ${currentPage.toUpperCase()}</h2>
+                        <p class="text-gray-400 max-w-xs text-sm">Area ini sedang dalam proses sinkronisasi database HANJITUR.</p>
+                    </div>
+                `;
+            }
+            lucide.createIcons();
+        }
+
+        function renderDetail(grup) {
+            const area = document.getElementById('content');
+            const items = (rawData.keuangan || []).filter(d => d.Grup === grup);
+            activeGrup = grup;
+
+            area.innerHTML = `
+                <button onclick="nav('keuangan')" class="text-[10px] font-bold text-gray-400 mb-6 flex items-center gap-2"><i data-lucide="arrow-left" class="w-3"></i> KEMBALI</button>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">${grup}</h2>
+                    <button onclick="toggleModal('${grup}')" class="bg-blue-800 text-white px-5 py-2.5 rounded-2xl font-bold text-xs shadow-lg">+ Input</button>
+                </div>
+                <div class="bg-white rounded-[32px] overflow-hidden border border-gray-100 card-shadow overflow-x-auto">
+                    <table class="w-full text-left">
+                        <tr class="bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-widest"><th class="p-5">Deskripsi</th><th class="p-5 text-right">Nominal</th></tr>
+                        ${items.length === 0 ? '<tr><td colspan="2" class="p-10 text-center text-gray-300 italic text-sm">Belum ada data tercatat.</td></tr>' : 
+                        items.reverse().map(row => `
+                            <tr class="border-t border-gray-50">
+                                <td class="p-5"><div class="font-bold text-gray-800 text-sm">${row.Keterangan}</div><div class="text-[9px] text-gray-400 font-bold uppercase">${row.Kategori}</div></td>
+                                <td class="p-5 text-right font-bold ${row.Tipe === 'Masuk' ? 'text-green-600' : 'text-gray-800'} text-sm">${row.Tipe === 'Masuk' ? '+' : '-'} ${Number(row.Nominal).toLocaleString()}</td>
+                            </tr>`).join('')}
+                    </table>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
         function toggleModal(grup = null) {
             const modal = document.getElementById('modal-input');
             const fields = document.getElementById('modal-fields');
-            const title = document.getElementById('modal-title');
-            
             if (grup) {
                 activeGrup = grup;
-                title.innerText = `Input ${grup}`;
-                let html = `
-                    <input type="text" id="in-keterangan" placeholder="Nama Item / Keterangan" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none">
-                    <input type="number" id="in-nominal" placeholder="Nominal Rp" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none">
+                fields.innerHTML = `
+                    <input type="text" id="in-keterangan" placeholder="Keterangan" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none">
+                    <input type="number" id="in-nominal" placeholder="Nominal" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none">
                     <input type="text" id="in-kategori" placeholder="Kategori" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none">
+                    ${grup === 'Arus Kas' ? '<select id="in-tipe" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none"><option value="Masuk">Masuk (+)</option><option value="Keluar">Keluar (-)</option></select>' : ''}
                 `;
-                if (grup === 'Arus Kas') {
-                    html += `<select id="in-tipe" class="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none"><option value="Masuk">Masuk (+)</option><option value="Keluar">Keluar (-)</option></select>`;
-                }
-                fields.innerHTML = html;
             }
             modal.classList.toggle('hidden');
         }
 
         async function submitData() {
-            const btnSave = document.getElementById('btn-save');
-            const payload = {
+            const btn = document.getElementById('btn-save');
+            const data = {
                 grup: activeGrup,
                 keterangan: document.getElementById('in-keterangan').value,
                 nominal: document.getElementById('in-nominal').value,
@@ -160,111 +235,11 @@
                 tipe: document.getElementById('in-tipe')?.value || 'Keluar',
                 status: 'Lunas'
             };
-
-            if(!payload.keterangan || !payload.nominal) return alert("Lengkapi data!");
-            btnSave.innerText = "Proses...";
-            btnSave.disabled = true;
-
-            try {
-                await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-                toggleModal();
-                setTimeout(loadData, 1500);
-            } catch (e) {
-                loadData();
-            } finally {
-                btnSave.innerText = "Simpan";
-                btnSave.disabled = false;
-            }
-        }
-
-        function changePage(page) {
-            currentPage = page;
-            document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('sidebar-active'));
-            document.getElementById('m-' + page)?.classList.add('sidebar-active');
-            document.getElementById('title-text').innerText = page;
-            renderCurrentPage();
-        }
-
-        function openFinanceOverview() {
-            currentPage = 'keuangan_main';
-            changePage('keuangan');
-        }
-
-        function renderCurrentPage() {
-            const area = document.getElementById('content');
-            area.scrollTop = 0; // Reset scroll ke atas tiap pindah halaman
-            
-            if (currentPage === 'dashboard') renderDashboard(area);
-            else if (currentPage === 'keuangan_main') renderFinanceOverview(area);
-            else area.innerHTML = `<div class="flex flex-col items-center justify-center py-32 text-gray-400">
-                <i data-lucide="construction" class="w-12 h-12 mb-4"></i>
-                <p class="italic">Modul ${currentPage.toUpperCase()} sedang dikembangkan.</p>
-            </div>`;
-            lucide.createIcons();
-        }
-
-        function renderDashboard(area) {
-            const list = rawData.keuangan || [];
-            let saldo = list.reduce((a, c) => c.Tipe === 'Masuk' ? a + Number(c.Nominal) : a - Number(c.Nominal), 0);
-            area.innerHTML = `
-                <div class="bg-blue-800 p-8 md:p-12 rounded-[40px] text-white shadow-2xl mb-8">
-                    <p class="text-[10px] opacity-60 uppercase font-bold tracking-widest mb-2">Total Saldo Aktif</p>
-                    <h2 class="text-3xl md:text-5xl font-bold italic">Rp ${saldo.toLocaleString('id-ID')}</h2>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-white p-6 rounded-[32px] border border-gray-100"><p class="text-[10px] text-gray-400 font-bold uppercase">Logistik</p><p class="font-bold text-gray-700 text-lg italic">Menunggu Data...</p></div>
-                    <div class="bg-white p-6 rounded-[32px] border border-gray-100"><p class="text-[10px] text-gray-400 font-bold uppercase">Update Terakhir</p><p class="font-bold text-gray-700 text-lg italic">${new Date().toLocaleTimeString()}</p></div>
-                </div>
-            `;
-        }
-
-        function renderFinanceOverview(area) {
-            const data = rawData.keuangan || [];
-            const sums = {
-                cash: data.filter(d => d.Grup === 'Arus Kas').reduce((a,c)=> c.Tipe === 'Masuk' ? a + Number(c.Nominal) : a - Number(c.Nominal), 0),
-                bill: data.filter(d => d.Grup === 'Tagihan' && d.Status === 'Belum').reduce((a,c)=> a + Number(c.Nominal), 0),
-                save: data.filter(d => d.Grup === 'Tabungan').reduce((a,c)=> a + Number(c.Nominal), 0)
-            };
-
-            area.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    ${['Arus Kas', 'Anggaran', 'Tagihan', 'Tabungan'].map(g => `
-                        <div onclick="renderDetailGrup('${g}')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer border-2 border-transparent hover:border-blue-800 transition">
-                            <div class="flex justify-between mb-4"><i data-lucide="${g==='Arus Kas'?'activity':g==='Anggaran'?'pie-chart':g==='Tagihan'?'calendar-alert':'piggy-bank'}" class="text-blue-800"></i><i data-lucide="chevron-right" class="text-gray-300"></i></div>
-                            <h3 class="font-bold text-gray-800">${g}</h3>
-                            <div class="text-xl font-bold text-blue-900 mt-2">
-                                ${g==='Anggaran' ? (rawData.budget?.length || 0) + ' Kategori' : 'Rp ' + sums[Object.keys(sums).find(k => g.toLowerCase().includes(k))]?.toLocaleString()}
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-
-        function renderDetailGrup(grup) {
-            const area = document.getElementById('content');
-            const items = (rawData.keuangan || []).filter(d => d.Grup === grup);
-            area.innerHTML = `
-                <button onclick="openFinanceOverview()" class="text-xs font-bold text-gray-400 mb-6 flex items-center gap-2"><i data-lucide="arrow-left" class="w-4"></i> KEMBALI</button>
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">${grup}</h2>
-                    <button onclick="toggleModal('${grup}')" class="bg-blue-800 text-white px-4 py-2 rounded-xl font-bold text-sm">+ Tambah</button>
-                </div>
-                <div class="bg-white rounded-[32px] overflow-hidden border border-gray-100 card-shadow">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <tr class="bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-widest"><th class="p-5">Rincian</th><th class="p-5 text-right">Nominal</th></tr>
-                            ${items.length === 0 ? '<tr><td colspan="2" class="p-10 text-center text-gray-300 italic">Data kosong</td></tr>' : 
-                            items.reverse().map(row => `
-                                <tr class="border-t border-gray-50">
-                                    <td class="p-5"><div class="font-bold text-gray-800 text-sm">${row.Keterangan}</div><div class="text-[10px] text-gray-400 font-bold uppercase">${row.Kategori}</div></td>
-                                    <td class="p-5 text-right"><div class="font-bold ${row.Tipe === 'Masuk' ? 'text-green-600' : 'text-gray-800'}">${row.Tipe === 'Masuk' ? '+' : '-'} ${Number(row.Nominal).toLocaleString()}</div></td>
-                                </tr>`).join('')}
-                        </table>
-                    </div>
-                </div>
-            `;
-            lucide.createIcons();
+            if(!data.keterangan || !data.nominal) return alert("Isi semua.");
+            btn.innerText = "...";
+            await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
+            toggleModal();
+            setTimeout(loadData, 1000);
         }
 
         window.onload = loadData;
