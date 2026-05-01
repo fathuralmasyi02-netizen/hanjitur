@@ -12,7 +12,6 @@
         .sidebar-active { background-color: #1E40AF; color: white !important; }
         .card-shadow { box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05); }
         @media (max-width: 768px) { .sidebar-hide { transform: translateX(-100%); } }
-        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden">
@@ -21,9 +20,7 @@
     <div id="modal-input" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-[32px] p-8 shadow-2xl">
             <h3 id="modal-title" class="text-xl font-bold mb-6 text-gray-800 uppercase tracking-tight">Catat Data</h3>
-            <div id="modal-fields" class="space-y-4">
-                <!-- Fields diisi via JS -->
-            </div>
+            <div id="modal-fields" class="space-y-4"></div>
             <div class="flex gap-3 pt-6">
                 <button onclick="toggleModal()" class="flex-1 py-4 text-gray-400 font-bold hover:bg-gray-50 rounded-2xl transition">Batal</button>
                 <button onclick="submitData()" id="btn-save" class="flex-1 py-4 bg-blue-800 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition">Simpan</button>
@@ -33,6 +30,7 @@
 
     <div id="overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden"></div>
 
+    <!-- Sidebar -->
     <aside id="sidebar" class="fixed md:relative w-64 bg-white border-r border-gray-200 h-full z-30 transition-transform duration-300 sidebar-hide md:transform-none">
         <div class="p-6 h-full flex flex-col">
             <div class="flex items-center gap-3 mb-10 px-2">
@@ -57,7 +55,7 @@
     </aside>
 
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header class="h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 px-6 flex items-center justify-between sticky top-0 z-10">
+        <header class="h-16 bg-white border-b border-gray-100 px-6 flex items-center justify-between sticky top-0 z-10">
             <div class="flex items-center gap-4">
                 <button onclick="toggleSidebar()" class="md:hidden p-2 hover:bg-gray-100 rounded-lg"><i data-lucide="menu"></i></button>
                 <h2 id="title-text" class="font-bold text-gray-700 text-xs uppercase tracking-widest">Dashboard</h2>
@@ -68,18 +66,47 @@
         </header>
 
         <div id="content" class="p-4 md:p-8 overflow-y-auto flex-1">
-            <!-- Content render via JS -->
+            <div class="flex flex-col items-center justify-center h-64 text-gray-400">
+                <div class="animate-spin mb-4"><i data-lucide="refresh-cw"></i></div>
+                <p>Menghubungkan ke server...</p>
+            </div>
         </div>
     </main>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyxSlHTNEGAEm44Iz4NSdXHJ2Efa6J-A-57jA2OLuTThdYo-wTj_7D_KnxUtPA3JJRh/exec";
-        let rawData = null;
+        // MASUKKAN URL WEB APP ANDA DI SINI
+        const API_URL = "https://script.google.com/macros/s/AKfycby6o_DWVJyPmJuteKNRnqjjDOz04U5YhBRbWvVYRwZT_tJW4UPaDj7fRJzuRDeCFTn5/exec";
+        
+        let rawData = { keuangan: [], budget: [] };
         let activeGrup = null;
+        let currentPage = 'dashboard';
 
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('sidebar-hide');
             document.getElementById('overlay').classList.toggle('hidden');
+        }
+
+        async function loadData() {
+            const btn = document.getElementById('refresh-btn');
+            btn?.classList.add('animate-spin');
+            try {
+                const res = await fetch(API_URL);
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                rawData = data;
+                renderCurrentPage();
+            } catch (e) {
+                console.error("Fetch error:", e);
+                document.getElementById('content').innerHTML = `
+                    <div class="bg-red-50 p-6 rounded-3 text-red-800 text-center">
+                        <p class="font-bold">Gagal memuat data.</p>
+                        <p class="text-sm">Pastikan Google Apps Script sudah di-deploy sebagai 'Anyone'.</p>
+                    </div>
+                `;
+            } finally {
+                btn?.classList.remove('animate-spin');
+                lucide.createIcons();
+            }
         }
 
         function toggleModal(grup = null) {
@@ -112,20 +139,6 @@
             modal.classList.toggle('hidden');
         }
 
-        async function loadData() {
-            const btn = document.getElementById('refresh-btn');
-            btn.classList.add('animate-spin');
-            try {
-                const res = await fetch(API_URL);
-                rawData = await res.json();
-                renderCurrentPage();
-            } catch (e) {
-                alert("Koneksi gagal.");
-            } finally {
-                btn.classList.remove('animate-spin');
-            }
-        }
-
         async function submitData() {
             const btnSave = document.getElementById('btn-save');
             const data = {
@@ -138,103 +151,87 @@
             };
 
             if(!data.keterangan || !data.nominal) return alert("Isi data dengan lengkap.");
-            btnSave.innerText = "Saving...";
+            
+            btnSave.innerText = "Menyimpan...";
             btnSave.disabled = true;
 
             try {
+                // Post menggunakan no-cors karena Apps Script redirect
                 await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
                 toggleModal();
-                loadData();
-            } catch (e) { alert("Berhasil."); loadData(); }
-            finally { btnSave.innerText = "Simpan"; btnSave.disabled = false; }
+                setTimeout(loadData, 1000); // Tunggu sebentar agar sheet terupdate
+            } catch (e) { 
+                alert("Data dikirim."); // Biasanya no-cors dianggap error padahal masuk
+                toggleModal();
+                loadData(); 
+            } finally { 
+                btnSave.innerText = "Simpan"; 
+                btnSave.disabled = false; 
+            }
         }
 
         function changePage(page) {
             currentPage = page;
             document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('sidebar-active'));
-            document.getElementById('m-' + page).classList.add('sidebar-active');
+            document.getElementById('m-' + page)?.classList.add('sidebar-active');
             document.getElementById('title-text').innerText = page;
             renderCurrentPage();
         }
 
         function openFinanceOverview() {
+            currentPage = 'keuangan';
             changePage('keuangan');
-            renderFinanceOverview();
         }
 
         function renderCurrentPage() {
             const area = document.getElementById('content');
             if (currentPage === 'dashboard') renderDashboard(area);
-            else if (currentPage === 'keuangan') renderFinanceOverview();
-            else area.innerHTML = `<div class="text-center p-20 text-gray-300 italic">Modul ${currentPage} siap dikembangkan.</div>`;
+            else if (currentPage === 'keuangan') renderFinanceOverview(area);
+            else area.innerHTML = `<div class="text-center p-20 text-gray-300 italic">Modul ${currentPage} segera hadir.</div>`;
             lucide.createIcons();
         }
 
         function renderDashboard(area) {
-            const keuangan = rawData?.keuangan || [];
-            let saldo = keuangan.reduce((a, c) => c.Tipe === 'Masuk' ? a + c.Nominal : a - c.Nominal, 0);
+            const list = rawData.keuangan || [];
+            let saldo = list.reduce((a, c) => c.Tipe === 'Masuk' ? a + Number(c.Nominal) : a - Number(c.Nominal), 0);
             area.innerHTML = `
                 <div class="bg-blue-800 p-10 rounded-[48px] text-white shadow-2xl mb-8">
                     <p class="text-xs opacity-60 uppercase tracking-widest mb-2 font-bold">Total Net Balance</p>
-                    <h2 class="text-5xl font-bold italic">Rp ${saldo.toLocaleString('id-ID')}</h2>
+                    <h2 class="text-4xl md:text-5xl font-bold italic">Rp ${saldo.toLocaleString('id-ID')}</h2>
                 </div>
+                <p class="text-gray-400 text-sm italic">Pilih menu Keuangan untuk melihat rincian.</p>
             `;
         }
 
-        function renderFinanceOverview() {
-            const area = document.getElementById('content');
-            const data = rawData?.keuangan || [];
-            const budget = rawData?.budget || [];
+        function renderFinanceOverview(area) {
+            const data = rawData.keuangan || [];
+            const budget = rawData.budget || [];
 
-            // Calculate Summaries
-            const cashflow = data.filter(d => d.Grup === 'Arus Kas');
-            const bills = data.filter(d => d.Grup === 'Tagihan' && d.Status === 'Belum');
-            const savings = data.filter(d => d.Grup === 'Tabungan');
+            const cashTotal = data.filter(d => d.Grup === 'Arus Kas').reduce((a,c)=> c.Tipe === 'Masuk' ? a + Number(c.Nominal) : a - Number(c.Nominal), 0);
+            const billTotal = data.filter(d => d.Grup === 'Tagihan' && d.Status === 'Belum').reduce((a,c)=> a + Number(c.Nominal), 0);
+            const saveTotal = data.filter(d => d.Grup === 'Tabungan').reduce((a,c)=> a + Number(c.Nominal), 0);
 
             area.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-500">
-                    <!-- ARUS KAS CARD -->
-                    <div onclick="renderDetailGrup('Arus Kas')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer hover:ring-2 hover:ring-blue-800 transition group">
-                        <div class="flex justify-between items-start mb-6">
-                            <div class="p-4 bg-blue-50 text-blue-800 rounded-3xl group-hover:bg-blue-800 group-hover:text-white transition"><i data-lucide="activity"></i></div>
-                            <i data-lucide="chevron-right" class="text-gray-300"></i>
-                        </div>
-                        <h3 class="text-lg font-bold text-gray-800">Arus Kas</h3>
-                        <p class="text-xs text-gray-400 mb-4">Pencatatan uang masuk & keluar harian</p>
-                        <div class="text-2xl font-bold text-blue-800">Rp ${cashflow.reduce((a,c)=>c.Tipe==='Masuk'?a+c.Nominal:a-c.Nominal,0).toLocaleString()}</div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div onclick="renderDetailGrup('Arus Kas')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer hover:border-blue-800 border-2 border-transparent transition">
+                        <div class="flex justify-between mb-4"><i data-lucide="activity" class="text-blue-800"></i><i data-lucide="chevron-right" class="text-gray-300"></i></div>
+                        <h3 class="font-bold text-gray-800">Arus Kas</h3>
+                        <div class="text-2xl font-bold text-blue-800 mt-2">Rp ${cashTotal.toLocaleString()}</div>
                     </div>
-
-                    <!-- ANGGARAN CARD -->
-                    <div onclick="renderDetailGrup('Anggaran')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer hover:ring-2 hover:ring-indigo-800 transition group">
-                        <div class="flex justify-between items-start mb-6">
-                            <div class="p-4 bg-indigo-50 text-indigo-800 rounded-3xl group-hover:bg-indigo-800 group-hover:text-white transition"><i data-lucide="pie-chart"></i></div>
-                            <i data-lucide="chevron-right" class="text-gray-300"></i>
-                        </div>
-                        <h3 class="text-lg font-bold text-gray-800">Anggaran</h3>
-                        <p class="text-xs text-gray-400 mb-4">Monitoring limit belanja bulanan</p>
-                        <div class="text-xs font-bold text-indigo-800 uppercase tracking-widest">${budget.length} Kategori Dipantau</div>
+                    <div onclick="renderDetailGrup('Anggaran')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer hover:border-indigo-800 border-2 border-transparent transition">
+                        <div class="flex justify-between mb-4"><i data-lucide="pie-chart" class="text-indigo-800"></i><i data-lucide="chevron-right" class="text-gray-300"></i></div>
+                        <h3 class="font-bold text-gray-800">Anggaran</h3>
+                        <div class="text-sm font-bold text-indigo-800 mt-2">${budget.length} Kategori</div>
                     </div>
-
-                    <!-- TAGIHAN CARD -->
-                    <div onclick="renderDetailGrup('Tagihan')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer hover:ring-2 hover:ring-orange-600 transition group">
-                        <div class="flex justify-between items-start mb-6">
-                            <div class="p-4 bg-orange-50 text-orange-600 rounded-3xl group-hover:bg-orange-600 group-hover:text-white transition"><i data-lucide="calendar-alert"></i></div>
-                            <i data-lucide="chevron-right" class="text-gray-300"></i>
-                        </div>
-                        <h3 class="text-lg font-bold text-gray-800">Tagihan</h3>
-                        <p class="text-xs text-gray-400 mb-4">Kewajiban yang belum terbayar</p>
-                        <div class="text-2xl font-bold text-orange-600">Rp ${bills.reduce((a,c)=>a+c.Nominal,0).toLocaleString()}</div>
+                    <div onclick="renderDetailGrup('Tagihan')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer hover:border-orange-600 border-2 border-transparent transition">
+                        <div class="flex justify-between mb-4"><i data-lucide="calendar-alert" class="text-orange-600"></i><i data-lucide="chevron-right" class="text-gray-300"></i></div>
+                        <h3 class="font-bold text-gray-800">Tagihan</h3>
+                        <div class="text-2xl font-bold text-orange-600 mt-2">Rp ${billTotal.toLocaleString()}</div>
                     </div>
-
-                    <!-- TABUNGAN CARD -->
-                    <div onclick="renderDetailGrup('Tabungan')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer hover:ring-2 hover:ring-green-600 transition group">
-                        <div class="flex justify-between items-start mb-6">
-                            <div class="p-4 bg-green-50 text-green-600 rounded-3xl group-hover:bg-green-800 group-hover:text-white transition"><i data-lucide="piggy-bank"></i></div>
-                            <i data-lucide="chevron-right" class="text-gray-300"></i>
-                        </div>
-                        <h3 class="text-lg font-bold text-gray-800">Tabungan</h3>
-                        <p class="text-xs text-gray-400 mb-4">Akumulasi dana simpanan</p>
-                        <div class="text-2xl font-bold text-green-600">Rp ${savings.reduce((a,c)=>a+c.Nominal,0).toLocaleString()}</div>
+                    <div onclick="renderDetailGrup('Tabungan')" class="bg-white p-8 rounded-[40px] card-shadow cursor-pointer hover:border-green-600 border-2 border-transparent transition">
+                        <div class="flex justify-between mb-4"><i data-lucide="piggy-bank" class="text-green-600"></i><i data-lucide="chevron-right" class="text-gray-300"></i></div>
+                        <h3 class="font-bold text-gray-800">Tabungan</h3>
+                        <div class="text-2xl font-bold text-green-600 mt-2">Rp ${saveTotal.toLocaleString()}</div>
                     </div>
                 </div>
             `;
@@ -243,76 +240,57 @@
 
         function renderDetailGrup(grup) {
             const area = document.getElementById('content');
-            const data = (rawData?.keuangan || []).filter(d => d.Grup === grup);
-            const budgetData = rawData?.budget || [];
-
-            let html = `
-                <div class="animate-in slide-in-from-right duration-300">
-                    <button onclick="renderFinanceOverview()" class="flex items-center gap-2 text-gray-400 font-bold text-xs mb-6 hover:text-blue-800 transition">
-                        <i data-lucide="arrow-left" class="w-4"></i> KEMBALI KE OVERVIEW
-                    </button>
-                    
-                    <div class="flex justify-between items-end mb-8">
-                        <div>
-                            <h2 class="text-3xl font-bold text-gray-800">${grup}</h2>
-                            <p class="text-sm text-gray-400">Rincian data dan riwayat pencatatan</p>
-                        </div>
-                        <button onclick="toggleModal('${grup}')" class="bg-blue-800 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-blue-100 flex items-center gap-2">
-                            <i data-lucide="plus" class="w-4"></i> Input ${grup}
-                        </button>
-                    </div>
-            `;
-
-            if (grup === 'Anggaran') {
-                html += `<div class="grid grid-cols-1 gap-4 mb-8">`;
+            const items = (rawData.keuangan || []).filter(d => d.Grup === grup);
+            
+            let extraContent = "";
+            if(grup === 'Anggaran') {
+                const budgetData = rawData.budget || [];
+                extraContent = `<div class="grid gap-4 mb-8">`;
                 budgetData.forEach(b => {
-                    const realisasi = (rawData?.keuangan || []).filter(d => d.Kategori === b.Kategori && d.Tipe === 'Keluar').reduce((a,c)=>a+c.Nominal, 0);
+                    const realisasi = (rawData.keuangan || []).filter(d => d.Kategori === b.Kategori && d.Tipe === 'Keluar').reduce((a,c)=> a + Number(c.Nominal), 0);
                     const persen = Math.min((realisasi/b.Alokasi)*100, 100);
-                    html += `
+                    extraContent += `
                         <div class="bg-white p-6 rounded-3xl border border-gray-100">
-                            <div class="flex justify-between text-sm font-bold mb-3">
-                                <span>${b.Kategori}</span>
-                                <span class="${persen > 90 ? 'text-red-500' : 'text-blue-800'}">${realisasi.toLocaleString()} / ${b.Alokasi.toLocaleString()}</span>
-                            </div>
-                            <div class="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
-                                <div class="h-full ${persen > 90 ? 'bg-red-500' : 'bg-blue-800'} transition-all duration-1000" style="width: ${persen}%"></div>
-                            </div>
-                        </div>
-                    `;
+                            <div class="flex justify-between text-sm font-bold mb-2"><span>${b.Kategori}</span><span>${realisasi.toLocaleString()} / ${Number(b.Alokasi).toLocaleString()}</span></div>
+                            <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden"><div class="h-full bg-blue-800" style="width:${persen}%"></div></div>
+                        </div>`;
                 });
-                html += `</div>`;
+                extraContent += `</div>`;
             }
 
-            html += `
-                <div class="bg-white rounded-[32px] border border-gray-100 card-shadow overflow-hidden">
-                    <table class="w-full text-left">
-                        <thead>
-                            <tr class="bg-gray-50 text-[10px] font-bold text-gray-400 uppercase">
-                                <th class="p-5">Deskripsi</th>
-                                <th class="p-5 text-right">Nominal</th>
+            area.innerHTML = `
+                <button onclick="openFinanceOverview()" class="text-xs font-bold text-gray-400 mb-6 flex items-center gap-2 hover:text-blue-800">
+                    <i data-lucide="arrow-left" class="w-4"></i> KEMBALI
+                </button>
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800">${grup}</h2>
+                    <button onclick="toggleModal('${grup}')" class="bg-blue-800 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg">
+                        <i data-lucide="plus" class="w-4"></i> Input
+                    </button>
+                </div>
+                ${extraContent}
+                <div class="bg-white rounded-[32px] overflow-hidden border border-gray-100 card-shadow">
+                    <table class="w-full text-left border-collapse">
+                        <tr class="bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-widest"><th class="p-5">Deskripsi</th><th class="p-5 text-right">Nominal</th></tr>
+                        ${items.length === 0 ? '<tr><td colspan="2" class="p-10 text-center text-gray-300 italic">Belum ada data</td></tr>' : 
+                          items.reverse().map(row => `
+                            <tr class="border-t border-gray-50">
+                                <td class="p-5">
+                                    <div class="font-bold text-gray-800 text-sm">${row.Keterangan}</div>
+                                    <div class="text-[10px] text-gray-400 font-bold uppercase">${row.Kategori}</div>
+                                </td>
+                                <td class="p-5 text-right">
+                                    <div class="font-bold ${row.Tipe === 'Masuk' ? 'text-green-600' : 'text-gray-800'}">
+                                        ${row.Tipe === 'Masuk' ? '+' : '-'} Rp ${Number(row.Nominal).toLocaleString()}
+                                    </div>
+                                    ${row.Status ? `<span class="text-[9px] px-2 py-0.5 rounded-full font-bold ${row.Status === 'Lunas' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">${row.Status}</span>` : ''}
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-50">
-                            ${data.reverse().map(row => `
-                                <tr>
-                                    <td class="p-5">
-                                        <p class="text-sm font-bold text-gray-800">${row.Keterangan}</p>
-                                        <p class="text-[10px] text-gray-400 uppercase font-bold">${row.Kategori} • ${new Date(row.Tanggal).toLocaleDateString()}</p>
-                                    </td>
-                                    <td class="p-5 text-right">
-                                        <div class="font-bold ${row.Tipe === 'Masuk' ? 'text-green-600' : 'text-gray-800'}">
-                                            ${row.Tipe === 'Masuk' ? '+' : '-'} Rp ${row.Nominal.toLocaleString()}
-                                        </div>
-                                        ${grup === 'Tagihan' ? `<span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${row.Status === 'Lunas' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">${row.Status}</span>` : ''}
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
+                          `).join('')
+                        }
                     </table>
                 </div>
-            </div>`;
-
-            area.innerHTML = html;
+            `;
             lucide.createIcons();
         }
 
