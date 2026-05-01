@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HANJITUR Engine v3.0</title>
+    
+    <!-- Link Logo Custom dari Google Drive -->
+    <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/d/1H1JqgBcdkbUg0rmO022wDCospnxkDArF">
+    <link rel="apple-touch-icon" href="https://lh3.googleusercontent.com/d/1H1JqgBcdkbUg0rmO022wDCospnxkDArF">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
@@ -40,7 +45,8 @@
     <aside id="sidebar" class="fixed md:relative w-64 bg-white border-r border-gray-200 h-full z-30 transition-transform duration-300 sidebar-hide md:transform-none">
         <div class="p-6 h-full flex flex-col">
             <div class="flex items-center gap-3 mb-8 px-2">
-                <div class="w-8 h-8 bg-blue-800 rounded-lg flex items-center justify-center text-white font-bold italic">H</div>
+                <!-- Ikon Logo di Sidebar -->
+                <img src="https://lh3.googleusercontent.com/d/1H1JqgBcdkbUg0rmO022wDCospnxkDArF" class="w-8 h-8 rounded-lg object-cover shadow-sm">
                 <span class="text-xl font-bold text-gray-800 tracking-tight">HANJITUR</span>
             </div>
             <nav class="flex-1 space-y-1">
@@ -76,12 +82,7 @@
         
         let rawData = { keuangan: [], wedding_stats: { progress: 0, countdown: 0 } }; 
         let currentPage = 'dashboard';
-        let currentSubPage = null; // Digunakan untuk detail Keuangan atau Pernikahan
-
-        const CATEGORIES = {
-            Masuk: ["Gaji", "Freelance", "Hadiah", "Lainnya"],
-            Keluar: ["Pangan", "Sodaqoh", "Transportasi", "Listrik", "Internet", "Kesehatan", "Lainnya"]
-        };
+        let currentSubPage = null;
 
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('sidebar-hide');
@@ -112,7 +113,6 @@
         function render() {
             const area = document.getElementById('content');
             area.scrollTop = 0;
-
             if (currentPage === 'dashboard') renderDashboard(area);
             else if (currentPage === 'pernikahan') {
                 if (currentSubPage) renderWeddingDetail(area, currentSubPage);
@@ -125,7 +125,6 @@
             lucide.createIcons();
         }
 
-        // --- DASHBOARD ---
         function renderDashboard(area) {
             const db = rawData.keuangan || [];
             const stats = rawData.wedding_stats || { progress: 0, countdown: 0 };
@@ -152,7 +151,6 @@
             `;
         }
 
-        // --- MODUL PERNIKAHAN ---
         function renderWeddingMain(area) {
             const menus = [
                 { id: 'wedding_todo', label: 'Daftar Tugas', icon: 'list-todo' },
@@ -181,7 +179,6 @@
                     </div>`).join('') : '<p class="text-center py-20 text-gray-300 italic">Belum ada data</p>'}</div>`;
         }
 
-        // --- MODUL KEUANGAN ---
         function renderFinanceMain(area) {
             area.innerHTML = `
                 <div class="space-y-4">
@@ -216,7 +213,6 @@
                     </div>`).join('')}</div>`;
         }
 
-        // --- LOGIKA MODAL & SUBMIT ---
         function toggleModal(target = null) {
             const m = document.getElementById('modal-input');
             if (target) {
