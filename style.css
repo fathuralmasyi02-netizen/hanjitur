@@ -1881,6 +1881,8 @@ body {
    ========================================================================== */
 .blossom-menu-wrapper {
   position: fixed;
+  bottom: 30px;
+  right: 14px;
   z-index: 950;
   user-select: none;
   touch-action: none;
