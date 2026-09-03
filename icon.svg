@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- White Background -->
+  <rect width="512" height="512" fill="#FFFFFF"/>
+  
+  <!-- Outline Love (Heart) in Green #528069 -->
+  <path d="M256 160 
+           C 220 100, 130 90, 85 145 
+           C 35 205, 45 295, 115 365 
+           L 256 445 
+           L 397 365 
+           C 467 295, 477 205, 427 145 
+           C 382 90, 292 100, 256 160 Z" 
+        fill="none" 
+        stroke="#528069" 
+        stroke-width="26" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"/>
+</svg>
