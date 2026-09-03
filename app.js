@@ -59,9 +59,13 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initLucide() {
-  if (window.lucide) {
-    lucide.createIcons();
-  }
+  try {
+    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+      lucide.createIcons();
+    } else if (typeof window !== 'undefined' && window.lucide && window.lucide.createIcons) {
+      window.lucide.createIcons();
+    }
+  } catch (e) {}
 }
 
 function checkAuth() {
@@ -119,138 +123,49 @@ function handleLogout() {
 let isBlossomOpen = false;
 let dockedBlossomPosition = { x: 0, y: 0 };
 
-function initDraggableBlossomMenu() {
-  const wrapper = document.getElementById('blossomMenuWrapper');
-  const trigger = document.getElementById('blossomTrigger');
-  if (!wrapper || !trigger) return;
+function getAppBounds() {
+  const shell = document.getElementById('appShell');
+  const viewW = window.innerWidth || document.documentElement.clientWidth || 390;
+  const viewH = window.innerHeight || document.documentElement.clientHeight || 844;
 
-  const triggerSize = 58;
-  const padding = 14;
+  let left = 0;
+  let right = viewW;
 
-  // Hapus cache posisi lama jika berada di atas layar/header (pos.y < 110)
-  const savedPos = localStorage.getItem(STORAGE_KEYS.BLOSSOM_POS);
-  if (savedPos) {
-    try {
-      const pos = JSON.parse(savedPos);
-      if (pos && typeof pos.x === 'number' && typeof pos.y === 'number' && Number.isFinite(pos.x) && Number.isFinite(pos.y) && pos.y >= 110) {
-        dockedBlossomPosition = calculateNearestEdge(pos.x, pos.y, triggerSize, padding);
-      } else {
-        dockedBlossomPosition = getDefaultBlossomPosition(triggerSize, padding);
-        localStorage.setItem(STORAGE_KEYS.BLOSSOM_POS, JSON.stringify(dockedBlossomPosition));
-      }
-    } catch (e) {
-      dockedBlossomPosition = getDefaultBlossomPosition(triggerSize, padding);
-    }
-  } else {
-    dockedBlossomPosition = getDefaultBlossomPosition(triggerSize, padding);
-  }
-
-  applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, false);
-
-  // Drag interaction states
-  let isDragging = false;
-  let startX = 0, startY = 0;
-  let initialLeft = 0, initialTop = 0;
-  let hasMoved = false;
-
-  function onPointerDown(e) {
-    if (e.button !== undefined && e.button !== 0) return;
-
-    isDragging = true;
-    hasMoved = false;
-    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-
-    startX = clientX;
-    startY = clientY;
-
-    const rect = wrapper.getBoundingClientRect();
-    initialLeft = rect.left;
-    initialTop = rect.top;
-
-    wrapper.style.transition = 'none';
-
-    document.addEventListener('pointermove', onPointerMove);
-    document.addEventListener('pointerup', onPointerUp);
-  }
-
-  function onPointerMove(e) {
-    if (!isDragging) return;
-
-    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-
-    const dx = clientX - startX;
-    const dy = clientY - startY;
-
-    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
-      hasMoved = true;
-      if (isBlossomOpen) toggleBlossomMenu(false);
-    }
-
-    let newX = initialLeft + dx;
-    let newY = initialTop + dy;
-
-    const screenW = window.innerWidth || document.documentElement.clientWidth || 390;
-    const screenH = window.innerHeight || document.documentElement.clientHeight || 844;
-
-    const maxX = screenW - triggerSize - padding;
-    const minY = 110; // Jangan biarkan menyentuh atau menutupi header
-    const maxY = screenH - triggerSize - 20;
-
-    newX = Math.max(padding, Math.min(newX, maxX));
-    newY = Math.max(minY, Math.min(newY, maxY));
-
-    applyBlossomPosition(newX, newY, false);
-  }
-
-  function onPointerUp(e) {
-    if (!isDragging) return;
-    isDragging = false;
-
-    document.removeEventListener('pointermove', onPointerMove);
-    document.removeEventListener('pointerup', onPointerUp);
-
-    if (hasMoved) {
-      const rect = wrapper.getBoundingClientRect();
-      dockedBlossomPosition = calculateNearestEdge(rect.left, rect.top, triggerSize, padding);
-      applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, true);
-      localStorage.setItem(STORAGE_KEYS.BLOSSOM_POS, JSON.stringify(dockedBlossomPosition));
-    } else {
-      toggleBlossomMenu(!isBlossomOpen);
+  if (shell) {
+    const rect = shell.getBoundingClientRect();
+    if (rect.width > 0 && rect.width < viewW) {
+      left = Math.max(0, Math.round(rect.left));
+      right = Math.min(viewW, Math.round(rect.right));
     }
   }
 
-  trigger.addEventListener('pointerdown', onPointerDown);
+  const width = Math.max(300, right - left);
 
-  window.addEventListener('resize', () => {
-    dockedBlossomPosition = calculateNearestEdge(dockedBlossomPosition.x, dockedBlossomPosition.y, triggerSize, padding);
-    if (!isBlossomOpen) {
-      applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, false);
-    } else {
-      const safe = getSafeBloomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, triggerSize);
-      applyBlossomPosition(safe.x, safe.y, false);
-    }
-  });
+  return {
+    left: left,
+    right: right,
+    width: width,
+    top: 0,
+    bottom: viewH,
+    height: viewH
+  };
 }
 
 function getDefaultBlossomPosition(size = 58, padding = 14) {
-  const screenW = window.innerWidth || document.documentElement.clientWidth || 390;
-  const screenH = window.innerHeight || document.documentElement.clientHeight || 844;
+  const bounds = getAppBounds();
   return {
-    x: Math.round(screenW - size - padding),
-    y: Math.round(screenH - size - 85)
+    x: Math.round(bounds.right - size - padding),
+    y: Math.round(bounds.bottom - size - 85)
   };
 }
 
 function calculateNearestEdge(currentX, currentY, size = 58, padding = 14) {
-  const screenW = window.innerWidth || document.documentElement.clientWidth || 390;
-  const screenH = window.innerHeight || document.documentElement.clientHeight || 844;
+  const bounds = getAppBounds();
 
-  const minX = padding;
-  const maxX = Math.max(minX, screenW - size - padding);
-  const minY = 110; // Aman di bawah header & countdown
-  const maxY = Math.max(minY, screenH - size - 20);
+  const minX = bounds.left + padding;
+  const maxX = Math.max(minX, bounds.right - size - padding);
+  const minY = 90;
+  const maxY = Math.max(minY, bounds.bottom - size - 25);
 
   let x = Number(currentX);
   let y = Number(currentY);
@@ -267,42 +182,17 @@ function calculateNearestEdge(currentX, currentY, size = 58, padding = 14) {
   return { x: Math.round(targetX), y: Math.round(targetY) };
 }
 
-function getSafeBloomPosition(currentX, currentY, size = 58) {
-  const screenW = window.innerWidth || document.documentElement.clientWidth || 390;
-  const screenH = window.innerHeight || document.documentElement.clientHeight || 844;
+function getSafeBloomPosition(size = 58) {
+  const bounds = getAppBounds();
+  const safeCenterX = bounds.left + (bounds.width - size) / 2;
 
-  const requiredClearance = 115;
-  const triggerRadius = size / 2;
-
-  let x = Number(currentX);
-  let y = Number(currentY);
-
-  if (!Number.isFinite(x)) x = screenW - size - 14;
-  if (!Number.isFinite(y)) y = screenH - size - 85;
-
-  let centerX = x + triggerRadius;
-  let centerY = y + triggerRadius;
-
-  const minCenterX = requiredClearance;
-  const maxCenterX = Math.max(minCenterX, screenW - requiredClearance);
-  const minCenterY = requiredClearance + 30; // aman dari header
-  const maxCenterY = Math.max(minCenterY, screenH - requiredClearance);
-
-  if (minCenterX >= maxCenterX) {
-    centerX = screenW / 2;
-  } else {
-    centerX = Math.max(minCenterX, Math.min(maxCenterX, centerX));
-  }
-
-  if (minCenterY >= maxCenterY) {
-    centerY = screenH / 2;
-  } else {
-    centerY = Math.max(minCenterY, Math.min(maxCenterY, centerY));
-  }
+  const minY = 135;
+  const maxY = Math.max(minY, bounds.bottom - size - 135);
+  const safeCenterY = Math.max(minY, Math.min(maxY, dockedBlossomPosition.y));
 
   return {
-    x: Math.round(centerX - triggerRadius),
-    y: Math.round(centerY - triggerRadius)
+    x: Math.round(safeCenterX),
+    y: Math.round(safeCenterY)
   };
 }
 
@@ -310,11 +200,9 @@ function applyBlossomPosition(x, y, animate = false) {
   const wrapper = document.getElementById('blossomMenuWrapper');
   if (!wrapper) return;
 
-  const screenW = window.innerWidth || document.documentElement.clientWidth || 390;
-  const screenH = window.innerHeight || document.documentElement.clientHeight || 844;
-
-  const validX = Number.isFinite(x) ? x : (screenW - 58 - 14);
-  const validY = Number.isFinite(y) ? y : (screenH - 58 - 85);
+  const bounds = getAppBounds();
+  const validX = Number.isFinite(x) ? x : (bounds.right - 58 - 14);
+  const validY = Number.isFinite(y) ? y : (bounds.bottom - 58 - 85);
 
   if (animate) {
     wrapper.style.transition = 'left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
@@ -328,20 +216,223 @@ function applyBlossomPosition(x, y, animate = false) {
   wrapper.style.top = `${validY}px`;
 }
 
+let blossomHasMoved = false;
+
+function handleBlossomClick(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  if (blossomHasMoved) {
+    blossomHasMoved = false;
+    return;
+  }
+  toggleBlossomMenu();
+}
+
+function initDraggableBlossomMenu() {
+  const wrapper = document.getElementById('blossomMenuWrapper');
+  const trigger = document.getElementById('blossomTrigger');
+  if (!wrapper || !trigger) return;
+
+  const triggerSize = 58;
+  const padding = 14;
+
+  const bounds = getAppBounds();
+  const defaultPos = getDefaultBlossomPosition(triggerSize, padding);
+  let validSaved = null;
+
+  const savedPos = localStorage.getItem(STORAGE_KEYS.BLOSSOM_POS);
+  if (savedPos) {
+    try {
+      const pos = JSON.parse(savedPos);
+      if (pos && typeof pos.x === 'number' && typeof pos.y === 'number' &&
+          Number.isFinite(pos.x) && Number.isFinite(pos.y) &&
+          pos.y >= 70 && pos.y <= (bounds.bottom - 40)) {
+        validSaved = calculateNearestEdge(pos.x, pos.y, triggerSize, padding);
+      }
+    } catch (e) {
+      validSaved = null;
+    }
+  }
+
+  dockedBlossomPosition = validSaved || defaultPos;
+  applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, false);
+
+  let isDragging = false;
+
+  // 1. TOUCH EVENTS UNTUK SMARTPHONE / TABLET (MENGIKUTI JARI DENGAN SANGAT MULUS)
+  let isTouching = false;
+  let touchStartX = 0, touchStartY = 0;
+  let touchInitLeft = 0, touchInitTop = 0;
+
+  trigger.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    isTouching = true;
+    isDragging = false;
+    blossomHasMoved = false;
+
+    touchStartX = t.clientX;
+    touchStartY = t.clientY;
+
+    const rect = wrapper.getBoundingClientRect();
+    touchInitLeft = rect.left;
+    touchInitTop = rect.top;
+
+    wrapper.style.transition = 'none';
+  }, { passive: true });
+
+  trigger.addEventListener('touchmove', (e) => {
+    if (!isTouching || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    const dx = t.clientX - touchStartX;
+    const dy = t.clientY - touchStartY;
+
+    if (!isDragging && Math.hypot(dx, dy) > 6) {
+      isDragging = true;
+      blossomHasMoved = true;
+      if (isBlossomOpen) toggleBlossomMenu(false);
+    }
+
+    if (isDragging) {
+      if (e.cancelable) e.preventDefault(); // Kunci scroll layar ponsel saat menyeret
+
+      const b = getAppBounds();
+      let newX = touchInitLeft + dx;
+      let newY = touchInitTop + dy;
+
+      const minX = b.left + padding;
+      const maxX = Math.max(minX, b.right - triggerSize - padding);
+      const minY = 90;
+      const maxY = Math.max(minY, b.bottom - triggerSize - 25);
+
+      newX = Math.max(minX, Math.min(maxX, newX));
+      newY = Math.max(minY, Math.min(maxY, newY));
+
+      applyBlossomPosition(newX, newY, false);
+    }
+  }, { passive: false });
+
+  trigger.addEventListener('touchend', () => {
+    if (!isTouching) return;
+    isTouching = false;
+
+    if (isDragging) {
+      isDragging = false;
+      const rect = wrapper.getBoundingClientRect();
+      dockedBlossomPosition = calculateNearestEdge(rect.left, rect.top, triggerSize, padding);
+      applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, true);
+      localStorage.setItem(STORAGE_KEYS.BLOSSOM_POS, JSON.stringify(dockedBlossomPosition));
+
+      setTimeout(() => {
+        blossomHasMoved = false;
+      }, 200);
+    }
+  }, { passive: true });
+
+  trigger.addEventListener('touchcancel', () => {
+    isTouching = false;
+    isDragging = false;
+    applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, true);
+    setTimeout(() => { blossomHasMoved = false; }, 200);
+  });
+
+  // 2. MOUSE EVENTS UNTUK PC / DESKTOP (MENGIKUTI KURSOR MOUSE)
+  let isMouseDown = false;
+  let mouseStartX = 0, mouseStartY = 0;
+  let mouseInitLeft = 0, mouseInitTop = 0;
+
+  trigger.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    isMouseDown = true;
+    isDragging = false;
+    blossomHasMoved = false;
+
+    mouseStartX = e.clientX;
+    mouseStartY = e.clientY;
+
+    const rect = wrapper.getBoundingClientRect();
+    mouseInitLeft = rect.left;
+    mouseInitTop = rect.top;
+
+    wrapper.style.transition = 'none';
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isMouseDown) return;
+    const dx = e.clientX - mouseStartX;
+    const dy = e.clientY - mouseStartY;
+
+    if (!isDragging && Math.hypot(dx, dy) > 6) {
+      isDragging = true;
+      blossomHasMoved = true;
+      if (isBlossomOpen) toggleBlossomMenu(false);
+    }
+
+    if (isDragging) {
+      e.preventDefault();
+      const b = getAppBounds();
+      let newX = mouseInitLeft + dx;
+      let newY = mouseInitTop + dy;
+
+      const minX = b.left + padding;
+      const maxX = Math.max(minX, b.right - triggerSize - padding);
+      const minY = 90;
+      const maxY = Math.max(minY, b.bottom - triggerSize - 25);
+
+      newX = Math.max(minX, Math.min(maxX, newX));
+      newY = Math.max(minY, Math.min(maxY, newY));
+
+      applyBlossomPosition(newX, newY, false);
+    }
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (!isMouseDown) return;
+    isMouseDown = false;
+
+    if (isDragging) {
+      isDragging = false;
+      const rect = wrapper.getBoundingClientRect();
+      dockedBlossomPosition = calculateNearestEdge(rect.left, rect.top, triggerSize, padding);
+      applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, true);
+      localStorage.setItem(STORAGE_KEYS.BLOSSOM_POS, JSON.stringify(dockedBlossomPosition));
+
+      setTimeout(() => {
+        blossomHasMoved = false;
+      }, 200);
+    }
+  });
+
+  window.addEventListener('resize', () => {
+    dockedBlossomPosition = calculateNearestEdge(dockedBlossomPosition.x, dockedBlossomPosition.y, triggerSize, padding);
+    if (!isBlossomOpen) {
+      applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, false);
+    } else {
+      const safe = getSafeBloomPosition(triggerSize);
+      applyBlossomPosition(safe.x, safe.y, false);
+    }
+  });
+}
+
 function toggleBlossomMenu(open) {
   isBlossomOpen = open !== undefined ? open : !isBlossomOpen;
   const wrapper = document.getElementById('blossomMenuWrapper');
   const trigger = document.getElementById('blossomTrigger');
   const backdrop = document.getElementById('blossomBackdrop');
+  if (!wrapper || !trigger || !backdrop) return;
 
   if (isBlossomOpen) {
-    const safePos = getSafeBloomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, 58);
+    // Saat mekar: bergeser lembut ke tengah frame aplikasi agar mekar sempurna tanpa ter-crop
+    const safePos = getSafeBloomPosition(58);
     applyBlossomPosition(safePos.x, safePos.y, true);
 
     wrapper.classList.add('open');
     trigger.classList.add('active');
     backdrop.classList.add('active');
   } else {
+    // Saat menutup: meluncur kembali ke posisi docking di tepian kiri atau kanan
     applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, true);
 
     wrapper.classList.remove('open');
