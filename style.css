@@ -421,10 +421,24 @@ body {
   animation: pulseDot 2s infinite;
 }
 
+.status-dot.syncing {
+  animation: spinDot 0.65s linear infinite !important;
+  background: transparent !important;
+  border: 1.5px solid currentColor !important;
+  border-top-color: transparent !important;
+  width: 8px !important;
+  height: 8px !important;
+}
+
 @keyframes pulseDot {
   0% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.3; transform: scale(1.2); }
   100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes spinDot {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* ==========================================================================
@@ -1266,9 +1280,17 @@ body {
   margin-top: 2px;
 }
 
-/* Anggaran Card */
+/* Anggaran Card (Interaktif untuk Buka Detail) */
 .budget-card {
   padding: 14px 16px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.budget-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(60, 95, 75, 0.16);
+  border-color: rgba(82, 128, 105, 0.35);
 }
 
 .budget-top {
