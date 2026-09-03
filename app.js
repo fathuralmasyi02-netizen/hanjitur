@@ -403,19 +403,31 @@ function updateSyncIndicator(isConnected) {
 }
 
 let isSyncing = false;
+let lastSyncAttempt = 0;
 
 async function syncFromSpreadsheet(silent = false) {
   if (isSyncing) return;
   isSyncing = true;
+  lastSyncAttempt = Date.now();
 
   const statusDot = document.querySelector('#syncStatusPill .status-dot');
-  if (statusDot) statusDot.classList.add('syncing');
+  // Animasi berputar HANYA muncul saat user klik manual (bukan saat silent background polling)
+  if (statusDot && !silent) statusDot.classList.add('syncing');
 
   if (!silent) showToast('Menghubungkan ke Google Spreadsheet...', 'info');
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 14000);
+
   try {
     // Cache-busting URL parameter agar browser mobile selalu mengambil data paling segar
     const fetchUrl = `${SCRIPT_URL}?_t=${Date.now()}`;
-    const res = await fetch(fetchUrl, { cache: 'no-store' });
+    const res = await fetch(fetchUrl, { 
+      cache: 'no-store',
+      signal: controller.signal 
+    });
+    clearTimeout(timeoutId);
+
     if (!res.ok) throw new Error('Gagal mengambil data dari Google Sheets');
     const remoteData = await res.json();
     
@@ -469,7 +481,8 @@ async function syncFromSpreadsheet(silent = false) {
       throw new Error(remoteData.message || 'Format data sheet tidak valid');
     }
   } catch (err) {
-    console.error(err);
+    clearTimeout(timeoutId);
+    console.warn('Sync warning:', err);
     if (!silent) showToast('Gagal sinkron: Periksa koneksi internet Anda', 'error');
   } finally {
     isSyncing = false;
@@ -481,24 +494,32 @@ function triggerQuickSync() {
   syncFromSpreadsheet(false);
 }
 
-// Auto-Sync pintar: otomatis cek data baru setiap 10 detik dan saat pengguna membuka/kembali ke layar aplikasi
+// Auto-Sync santai & cerdas: cek saat pengguna kembali ke tab, dengan batas jeda minimal 30 detik
 function initAutoSync() {
-  window.addEventListener('focus', () => {
-    syncFromSpreadsheet(true);
-  });
+  function triggerFocusSync() {
+    const now = Date.now();
+    if (now - lastSyncAttempt > 30000 && !isSyncing) {
+      syncFromSpreadsheet(true);
+    }
+  }
+
+  window.addEventListener('focus', triggerFocusSync);
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      syncFromSpreadsheet(true);
+      triggerFocusSync();
     }
   });
 
-  // Polling latar belakang setiap 10 detik saat tab aktif
+  // Polling latar belakang santai setiap 60 detik (tidak memberatkan kuota/server)
   setInterval(() => {
     if (document.visibilityState === 'visible' && !isSyncing) {
-      syncFromSpreadsheet(true);
+      const now = Date.now();
+      if (now - lastSyncAttempt > 50000) {
+        syncFromSpreadsheet(true);
+      }
     }
-  }, 10000);
+  }, 60000);
 }
 
 async function pushToSpreadsheet(action, sheetName, rowData) {
