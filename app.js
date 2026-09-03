@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
   startCountdownTimer();
   renderAllViews();
   initDraggableBlossomMenu();
+  initAutoSync();
 });
 
 function initLucide() {
@@ -387,28 +388,45 @@ function saveDataLocally() {
 function updateSyncIndicator(isConnected) {
   const statusPill = document.getElementById('syncStatusPill');
   const statusText = document.getElementById('syncStatusText');
+  if (!statusPill) return;
   if (isConnected) {
     statusPill.style.background = 'rgba(58, 150, 105, 0.15)';
     statusPill.style.color = '#3A9669';
     statusPill.style.borderColor = 'rgba(58, 150, 105, 0.3)';
-    statusText.innerText = 'Live Sheet';
+    if (statusText) statusText.innerText = 'Live Sheet';
   } else {
     statusPill.style.background = 'rgba(82, 128, 105, 0.12)';
     statusPill.style.color = '#528069';
     statusPill.style.borderColor = 'rgba(82, 128, 105, 0.25)';
-    statusText.innerText = 'Demo Mode';
+    if (statusText) statusText.innerText = 'Demo Mode';
   }
 }
 
+let isSyncing = false;
+
 async function syncFromSpreadsheet(silent = false) {
+  if (isSyncing) return;
+  isSyncing = true;
+
+  const statusDot = document.querySelector('#syncStatusPill .status-dot');
+  if (statusDot) statusDot.classList.add('syncing');
+
   if (!silent) showToast('Menghubungkan ke Google Spreadsheet...', 'info');
   try {
-    const res = await fetch(SCRIPT_URL);
+    // Cache-busting URL parameter agar browser mobile selalu mengambil data paling segar
+    const fetchUrl = `${SCRIPT_URL}?_t=${Date.now()}`;
+    const res = await fetch(fetchUrl, { cache: 'no-store' });
     if (!res.ok) throw new Error('Gagal mengambil data dari Google Sheets');
     const remoteData = await res.json();
     
     if (remoteData && remoteData.status === 'success') {
       const live = remoteData.data || {};
+
+      // Cek apakah data benar-benar berubah sebelum re-render
+      const newStr = JSON.stringify(live);
+      const oldStr = localStorage.getItem(STORAGE_KEYS.DATA_STORE);
+      const hasChanged = newStr !== oldStr;
+
       weddingData = live;
       if (!weddingData.Rundown_Hari_H) weddingData.Rundown_Hari_H = [];
       if (!weddingData.Master) weddingData.Master = {};
@@ -435,11 +453,16 @@ async function syncFromSpreadsheet(silent = false) {
       if (!weddingData.Tamu_Undangan) weddingData.Tamu_Undangan = [];
 
       saveDataLocally();
-      renderAllViews();
-      renderMasterCategoryList();
+
+      // Render ulang jika ada pembaruan data atau klik manual pengguna
+      if (hasChanged || !silent) {
+        renderAllViews();
+        renderMasterCategoryList();
+      }
+
       updateSyncIndicator(true);
       if (!silent) {
-        showToast('Data berhasil disinkronkan dengan Spreadsheet! 🌿', 'success');
+        showToast('Data berhasil disinkronkan! 🌿', 'success');
         closeModal('modalSettings');
       }
     } else {
@@ -448,7 +471,34 @@ async function syncFromSpreadsheet(silent = false) {
   } catch (err) {
     console.error(err);
     if (!silent) showToast('Gagal sinkron: Periksa koneksi internet Anda', 'error');
+  } finally {
+    isSyncing = false;
+    if (statusDot) statusDot.classList.remove('syncing');
   }
+}
+
+function triggerQuickSync() {
+  syncFromSpreadsheet(false);
+}
+
+// Auto-Sync pintar: otomatis cek data baru setiap 10 detik dan saat pengguna membuka/kembali ke layar aplikasi
+function initAutoSync() {
+  window.addEventListener('focus', () => {
+    syncFromSpreadsheet(true);
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      syncFromSpreadsheet(true);
+    }
+  });
+
+  // Polling latar belakang setiap 10 detik saat tab aktif
+  setInterval(() => {
+    if (document.visibilityState === 'visible' && !isSyncing) {
+      syncFromSpreadsheet(true);
+    }
+  }, 10000);
 }
 
 async function pushToSpreadsheet(action, sheetName, rowData) {
@@ -1116,14 +1166,20 @@ function renderKeuangan() {
           ${items.map(item => {
             const pct = item.riil > 0 ? Math.min(100, Math.round((item.bayar / item.riil) * 100)) : 0;
             return `
-              <div class="glass-card budget-card">
+              <div class="glass-card budget-card" onclick="openAnggaranDetail('${item.ID_Anggaran}')" title="Klik untuk lihat rincian pos anggaran">
                 <div class="budget-top">
                   <div>
                     <div class="budget-category">${item.Kategori_Anggaran || 'Pos Biaya'}</div>
                     <div class="budget-item-name">${item.Item}</div>
                   </div>
-                  <div class="budget-due">
-                    <i data-lucide="calendar" style="width: 11px; height: 11px; display: inline;"></i> ${item.Jatuh_Tempo || '-'}
+                  <div style="text-align: right;">
+                    <div class="budget-due">
+                      <i data-lucide="calendar" style="width: 11px; height: 11px; display: inline;"></i> ${item.Jatuh_Tempo || '-'}
+                    </div>
+                    <div style="font-size: 10.5px; color: var(--primary); margin-top: 3px; font-weight: 700; display: flex; align-items: center; justify-content: flex-end; gap: 2px;">
+                      <span>Detail</span>
+                      <i data-lucide="chevron-right" style="width: 13px; height: 13px;"></i>
+                    </div>
                   </div>
                 </div>
                 <div class="budget-metrics">
@@ -1156,6 +1212,137 @@ function renderKeuangan() {
     });
   }
   initLucide();
+}
+
+// ----------------------------------------------------------------------------
+// INTERAKTIF POS ANGGARAN (Detail Popup, Edit & Hapus)
+// ----------------------------------------------------------------------------
+let selectedAnggaranId = null;
+
+function openAnggaranDetail(id) {
+  selectedAnggaranId = id;
+  const item = (weddingData.Anggaran || []).find(a => a.ID_Anggaran === id);
+  if (!item) return;
+
+  const est = Number(item.Estimasi) || 0;
+  const riil = Number(item.Biaya_Riil) || est;
+  const bayar = Number(item.Jumlah_Dibayar) || 0;
+  const sisa = Math.max(0, riil - bayar);
+  const pct = riil > 0 ? Math.min(100, Math.round((bayar / riil) * 100)) : 0;
+
+  document.getElementById('anggaranDetailCategory').innerText = item.Kategori_Anggaran || 'Pos Biaya';
+  document.getElementById('anggaranDetailItem').innerText = item.Item || 'Pos Anggaran';
+  document.getElementById('anggaranDetailEstimasi').innerText = formatRupiah(est);
+  document.getElementById('anggaranDetailBiayaRiil').innerText = formatRupiah(riil);
+  document.getElementById('anggaranDetailTerbayar').innerText = formatRupiah(bayar);
+  document.getElementById('anggaranDetailSisa').innerText = formatRupiah(sisa);
+  document.getElementById('anggaranDetailPct').innerText = `${pct}%`;
+  document.getElementById('anggaranDetailProgressBar').style.width = `${pct}%`;
+  document.getElementById('anggaranDetailJatuhTempo').innerText = item.Jatuh_Tempo || '-';
+
+  const statusBadge = document.getElementById('anggaranDetailStatusBadge');
+  if (statusBadge) {
+    if (sisa === 0 && bayar > 0) {
+      statusBadge.innerText = 'Lunas';
+      statusBadge.style = 'background: var(--success-bg); color: var(--success);';
+    } else if (bayar > 0) {
+      statusBadge.innerText = 'DP / Sebagian';
+      statusBadge.style = 'background: rgba(82, 128, 105, 0.15); color: var(--primary);';
+    } else {
+      statusBadge.innerText = 'Belum Bayar';
+      statusBadge.style = 'background: var(--danger-bg); color: var(--danger);';
+    }
+  }
+
+  const catatanWrap = document.getElementById('anggaranDetailCatatanWrap');
+  const catatanEl = document.getElementById('anggaranDetailCatatan');
+  if (item.Catatan && item.Catatan.trim() && item.Catatan !== '-') {
+    catatanEl.innerText = item.Catatan;
+    catatanWrap.style.display = 'flex';
+  } else {
+    catatanWrap.style.display = 'none';
+  }
+
+  openModal('modalAnggaranDetail');
+}
+
+function openEditAnggaranModal() {
+  closeModal('modalAnggaranDetail');
+  const item = (weddingData.Anggaran || []).find(a => a.ID_Anggaran === selectedAnggaranId);
+  if (!item) return;
+
+  const est = Number(item.Estimasi) || 0;
+  const riil = Number(item.Biaya_Riil) || est;
+  const bayar = Number(item.Jumlah_Dibayar) || 0;
+
+  // Populate category options
+  const catSelect = document.getElementById('editAnggaranKategori');
+  if (catSelect) {
+    const masterCats = (weddingData.Master && Array.isArray(weddingData.Master.KategoriVendor)) ? weddingData.Master.KategoriVendor : [];
+    const existingCats = (weddingData.Anggaran || []).map(a => a.Kategori_Anggaran).filter(Boolean);
+    const defaultCats = ['Venue', 'Catering', 'Dekorasi', 'MUA & Busana', 'Dokumentasi', 'Undangan & Souvenir', 'Entertainment', 'Lain-lain'];
+    const allCats = Array.from(new Set([...defaultCats, ...masterCats, ...existingCats]));
+    catSelect.innerHTML = allCats.map(c => `<option value="${c}">${c}</option>`).join('');
+    catSelect.value = item.Kategori_Anggaran || 'Lain-lain';
+  }
+
+  document.getElementById('editAnggaranItem').value = item.Item || '';
+  document.getElementById('editAnggaranEstimasi').value = est;
+  document.getElementById('editAnggaranBiayaRiil').value = riil;
+  document.getElementById('editAnggaranJumlahBayar').value = bayar;
+  document.getElementById('editAnggaranJatuhTempo').value = item.Jatuh_Tempo !== '-' ? (item.Jatuh_Tempo || '') : '';
+  document.getElementById('editAnggaranCatatan').value = (item.Catatan && item.Catatan !== '-') ? item.Catatan : '';
+
+  openModal('modalEditAnggaran');
+}
+
+function submitEditAnggaran() {
+  const item = (weddingData.Anggaran || []).find(a => a.ID_Anggaran === selectedAnggaranId);
+  if (!item) return;
+
+  const kategori = document.getElementById('editAnggaranKategori').value;
+  const itemName = document.getElementById('editAnggaranItem').value.trim();
+  const est = Number(document.getElementById('editAnggaranEstimasi').value) || 0;
+  const riil = Number(document.getElementById('editAnggaranBiayaRiil').value) || est;
+  const bayar = Number(document.getElementById('editAnggaranJumlahBayar').value) || 0;
+  const tempo = document.getElementById('editAnggaranJatuhTempo').value;
+  const catatan = document.getElementById('editAnggaranCatatan').value.trim();
+
+  if (!itemName || est <= 0) {
+    showToast('Harap masukkan nama item dan estimasi biaya yang valid!', 'error');
+    return;
+  }
+
+  const sisa = Math.max(0, riil - bayar);
+
+  item.Kategori_Anggaran = kategori;
+  item.Item = itemName;
+  item.Estimasi = est;
+  item.Biaya_Riil = riil;
+  item.Jumlah_Dibayar = bayar;
+  item.Sisa_Pembayaran = sisa;
+  item.Jatuh_Tempo = tempo || '-';
+  item.Catatan = catatan || '-';
+
+  saveDataLocally();
+  renderAllViews();
+  closeModal('modalEditAnggaran');
+  showToast(`Pos anggaran "${itemName}" berhasil diperbarui! 💰`, 'success');
+  pushToSpreadsheet('update_anggaran', 'Anggaran', item);
+}
+
+function deleteAnggaranItem() {
+  const item = (weddingData.Anggaran || []).find(a => a.ID_Anggaran === selectedAnggaranId);
+  if (!item) return;
+
+  if (confirm(`Apakah Anda yakin ingin menghapus pos anggaran "${item.Item}"?`)) {
+    weddingData.Anggaran = (weddingData.Anggaran || []).filter(a => a.ID_Anggaran !== selectedAnggaranId);
+    saveDataLocally();
+    renderAllViews();
+    closeModal('modalAnggaranDetail');
+    showToast(`Pos anggaran "${item.Item}" berhasil dihapus! 🗑️`, 'info');
+    pushToSpreadsheet('delete_row', 'Anggaran', { ID: selectedAnggaranId });
+  }
 }
 
 // ----------------------------------------------------------------------------
