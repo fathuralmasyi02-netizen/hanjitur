@@ -125,14 +125,19 @@ function initDraggableBlossomMenu() {
   if (!wrapper || !trigger) return;
 
   const triggerSize = 58;
-  const padding = 12;
+  const padding = 14;
 
-  // Restore saved position or set default position
+  // Hapus cache posisi lama jika berada di atas layar/header (pos.y < 110)
   const savedPos = localStorage.getItem(STORAGE_KEYS.BLOSSOM_POS);
   if (savedPos) {
     try {
       const pos = JSON.parse(savedPos);
-      dockedBlossomPosition = calculateNearestEdge(pos.x, pos.y, triggerSize, padding);
+      if (pos && typeof pos.x === 'number' && typeof pos.y === 'number' && Number.isFinite(pos.x) && Number.isFinite(pos.y) && pos.y >= 110) {
+        dockedBlossomPosition = calculateNearestEdge(pos.x, pos.y, triggerSize, padding);
+      } else {
+        dockedBlossomPosition = getDefaultBlossomPosition(triggerSize, padding);
+        localStorage.setItem(STORAGE_KEYS.BLOSSOM_POS, JSON.stringify(dockedBlossomPosition));
+      }
     } catch (e) {
       dockedBlossomPosition = getDefaultBlossomPosition(triggerSize, padding);
     }
@@ -149,7 +154,6 @@ function initDraggableBlossomMenu() {
   let hasMoved = false;
 
   function onPointerDown(e) {
-    // Only left click or single touch
     if (e.button !== undefined && e.button !== 0) return;
 
     isDragging = true;
@@ -181,19 +185,21 @@ function initDraggableBlossomMenu() {
 
     if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
       hasMoved = true;
-      // Close blossom menu if user begins dragging
       if (isBlossomOpen) toggleBlossomMenu(false);
     }
 
     let newX = initialLeft + dx;
     let newY = initialTop + dy;
 
-    // Viewport constraints while freely dragging
-    const maxX = window.innerWidth - triggerSize - padding;
-    const maxY = window.innerHeight - triggerSize - padding;
+    const screenW = window.innerWidth || document.documentElement.clientWidth || 390;
+    const screenH = window.innerHeight || document.documentElement.clientHeight || 844;
+
+    const maxX = screenW - triggerSize - padding;
+    const minY = 110; // Jangan biarkan menyentuh atau menutupi header
+    const maxY = screenH - triggerSize - 20;
 
     newX = Math.max(padding, Math.min(newX, maxX));
-    newY = Math.max(padding, Math.min(newY, maxY));
+    newY = Math.max(minY, Math.min(newY, maxY));
 
     applyBlossomPosition(newX, newY, false);
   }
@@ -206,20 +212,17 @@ function initDraggableBlossomMenu() {
     document.removeEventListener('pointerup', onPointerUp);
 
     if (hasMoved) {
-      // Snap to nearest screen edge (docking di tepian sisi perangkat)
       const rect = wrapper.getBoundingClientRect();
       dockedBlossomPosition = calculateNearestEdge(rect.left, rect.top, triggerSize, padding);
       applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, true);
       localStorage.setItem(STORAGE_KEYS.BLOSSOM_POS, JSON.stringify(dockedBlossomPosition));
     } else {
-      // Single tap: toggle blossom menu
       toggleBlossomMenu(!isBlossomOpen);
     }
   }
 
   trigger.addEventListener('pointerdown', onPointerDown);
 
-  // Auto-adjust when screen orientation changes or window resizes
   window.addEventListener('resize', () => {
     dockedBlossomPosition = calculateNearestEdge(dockedBlossomPosition.x, dockedBlossomPosition.y, triggerSize, padding);
     if (!isBlossomOpen) {
@@ -231,54 +234,70 @@ function initDraggableBlossomMenu() {
   });
 }
 
-function getDefaultBlossomPosition(size = 58, padding = 12) {
+function getDefaultBlossomPosition(size = 58, padding = 14) {
+  const screenW = window.innerWidth || document.documentElement.clientWidth || 390;
+  const screenH = window.innerHeight || document.documentElement.clientHeight || 844;
   return {
-    x: window.innerWidth - size - padding,
-    y: window.innerHeight - size - 80
+    x: Math.round(screenW - size - padding),
+    y: Math.round(screenH - size - 85)
   };
 }
 
-function calculateNearestEdge(currentX, currentY, size = 58, padding = 12) {
+function calculateNearestEdge(currentX, currentY, size = 58, padding = 14) {
+  const screenW = window.innerWidth || document.documentElement.clientWidth || 390;
+  const screenH = window.innerHeight || document.documentElement.clientHeight || 844;
+
   const minX = padding;
-  const maxX = window.innerWidth - size - padding;
-  const minY = 65; // Safe margin below header
-  const maxY = window.innerHeight - size - 25; // Safe margin above bottom
+  const maxX = Math.max(minX, screenW - size - padding);
+  const minY = 110; // Aman di bawah header & countdown
+  const maxY = Math.max(minY, screenH - size - 20);
 
-  // Distance to left and right edges
-  const distLeft = Math.abs(currentX - minX);
-  const distRight = Math.abs(maxX - currentX);
+  let x = Number(currentX);
+  let y = Number(currentY);
 
-  // Dock to nearest edge (kiri atau kanan perangkat)
+  if (!Number.isFinite(x)) x = maxX;
+  if (!Number.isFinite(y)) y = maxY;
+
+  const distLeft = Math.abs(x - minX);
+  const distRight = Math.abs(maxX - x);
+
   const targetX = distLeft <= distRight ? minX : maxX;
-  const targetY = Math.max(minY, Math.min(maxY, currentY));
+  const targetY = Math.max(minY, Math.min(maxY, y));
 
-  return { x: targetX, y: targetY };
+  return { x: Math.round(targetX), y: Math.round(targetY) };
 }
 
 function getSafeBloomPosition(currentX, currentY, size = 58) {
-  // Blossom radius 80px + petal radius 23px + safe margin ~12px = 115px clearance
+  const screenW = window.innerWidth || document.documentElement.clientWidth || 390;
+  const screenH = window.innerHeight || document.documentElement.clientHeight || 844;
+
   const requiredClearance = 115;
   const triggerRadius = size / 2;
 
-  const minCenter = requiredClearance;
-  const maxCenterX = window.innerWidth - requiredClearance;
-  const maxCenterY = window.innerHeight - requiredClearance;
+  let x = Number(currentX);
+  let y = Number(currentY);
 
-  let centerX = currentX + triggerRadius;
-  let centerY = currentY + triggerRadius;
+  if (!Number.isFinite(x)) x = screenW - size - 14;
+  if (!Number.isFinite(y)) y = screenH - size - 85;
 
-  // On narrow screens, center horizontally so petals are never cropped on left or right
-  if (minCenter >= maxCenterX) {
-    centerX = window.innerWidth / 2;
+  let centerX = x + triggerRadius;
+  let centerY = y + triggerRadius;
+
+  const minCenterX = requiredClearance;
+  const maxCenterX = Math.max(minCenterX, screenW - requiredClearance);
+  const minCenterY = requiredClearance + 30; // aman dari header
+  const maxCenterY = Math.max(minCenterY, screenH - requiredClearance);
+
+  if (minCenterX >= maxCenterX) {
+    centerX = screenW / 2;
   } else {
-    centerX = Math.max(minCenter, Math.min(maxCenterX, centerX));
+    centerX = Math.max(minCenterX, Math.min(maxCenterX, centerX));
   }
 
-  // Adjust vertical center so top/bottom petals are never cropped
-  if (minCenter >= maxCenterY) {
-    centerY = window.innerHeight / 2;
+  if (minCenterY >= maxCenterY) {
+    centerY = screenH / 2;
   } else {
-    centerY = Math.max(minCenter, Math.min(maxCenterY, centerY));
+    centerY = Math.max(minCenterY, Math.min(maxCenterY, centerY));
   }
 
   return {
@@ -290,13 +309,23 @@ function getSafeBloomPosition(currentX, currentY, size = 58) {
 function applyBlossomPosition(x, y, animate = false) {
   const wrapper = document.getElementById('blossomMenuWrapper');
   if (!wrapper) return;
+
+  const screenW = window.innerWidth || document.documentElement.clientWidth || 390;
+  const screenH = window.innerHeight || document.documentElement.clientHeight || 844;
+
+  const validX = Number.isFinite(x) ? x : (screenW - 58 - 14);
+  const validY = Number.isFinite(y) ? y : (screenH - 58 - 85);
+
   if (animate) {
-    wrapper.style.transition = 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    wrapper.style.transition = 'left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
   } else {
     wrapper.style.transition = 'none';
   }
-  wrapper.style.left = `${x}px`;
-  wrapper.style.top = `${y}px`;
+
+  wrapper.style.bottom = 'auto';
+  wrapper.style.right = 'auto';
+  wrapper.style.left = `${validX}px`;
+  wrapper.style.top = `${validY}px`;
 }
 
 function toggleBlossomMenu(open) {
@@ -306,7 +335,6 @@ function toggleBlossomMenu(open) {
   const backdrop = document.getElementById('blossomBackdrop');
 
   if (isBlossomOpen) {
-    // Saat mekar: bergeser lembut ke koordinat aman agar seluruh menu tidak ter-crop sisi layar
     const safePos = getSafeBloomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, 58);
     applyBlossomPosition(safePos.x, safePos.y, true);
 
@@ -314,7 +342,6 @@ function toggleBlossomMenu(open) {
     trigger.classList.add('active');
     backdrop.classList.add('active');
   } else {
-    // Saat menutup: meluncur kembali menempel di tepian posisi docking semula
     applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, true);
 
     wrapper.classList.remove('open');
