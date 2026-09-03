@@ -73,9 +73,9 @@
         <h1 class="brand-title">Hanjitur Organizer</h1>
       </div>
       <div class="header-actions">
-        <div class="status-pill" id="syncStatusPill" title="Status Sinkronisasi Spreadsheet">
+        <div class="status-pill" id="syncStatusPill" onclick="triggerQuickSync()" title="Klik untuk sinkronkan data sekarang" style="cursor: pointer;">
           <span class="status-dot"></span>
-          <span id="syncStatusText">Demo Mode</span>
+          <span id="syncStatusText">Live Sheet</span>
         </div>
         <button class="btn-icon" onclick="openSettingsModal()" title="Pengaturan & Sinkronisasi">
           <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
@@ -1043,6 +1043,147 @@
 
         <button type="submit" class="btn-primary">
           <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i> Simpan Pos Anggaran
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: DETAIL POS ANGGARAN (Lihat Detail, Edit & Hapus)
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalAnggaranDetail">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Detail Pos Anggaran</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalAnggaranDetail')">&times;</button>
+      </div>
+
+      <!-- Kategori & Status Badge -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <span class="timeline-cat-pill" id="anggaranDetailCategory">Kategori</span>
+        <span class="tx-status-badge" id="anggaranDetailStatusBadge">Belum Bayar</span>
+      </div>
+
+      <!-- Nama Item -->
+      <h2 style="font-size: 17px; font-weight: 700; color: var(--text-dark); margin-bottom: 14px;" id="anggaranDetailItem">Nama Pos Anggaran</h2>
+
+      <!-- Metrics Grid -->
+      <div class="glass-card" style="padding: 14px; margin-bottom: 14px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 2px;">Estimasi Biaya</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--text-dark);" id="anggaranDetailEstimasi">Rp 0</div>
+          </div>
+          <div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 2px;">Biaya Riil</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--primary);" id="anggaranDetailBiayaRiil">Rp 0</div>
+          </div>
+          <div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 2px;">Jumlah Terbayar</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--success);" id="anggaranDetailTerbayar">Rp 0</div>
+          </div>
+          <div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 2px;">Sisa Tagihan</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--danger);" id="anggaranDetailSisa">Rp 0</div>
+          </div>
+        </div>
+
+        <div style="border-top: 1px dashed rgba(82, 128, 105, 0.2); padding-top: 10px;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px;">
+            <span style="color: var(--text-muted);">Progres Pelunasan</span>
+            <span style="font-weight: 700; color: var(--primary);" id="anggaranDetailPct">0%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="anggaranDetailProgressBar" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Rincian -->
+      <div class="glass-card-sm" style="padding: 12px 14px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(82, 128, 105, 0.1);">
+          <span style="font-size: 12px; color: var(--text-muted);">Jatuh Tempo:</span>
+          <span style="font-size: 12px; font-weight: 600; color: var(--text-dark);" id="anggaranDetailJatuhTempo">-</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 6px 0;" id="anggaranDetailCatatanWrap">
+          <span style="font-size: 12px; color: var(--text-muted);">Catatan:</span>
+          <span style="font-size: 12px; color: var(--text-dark); text-align: right; max-width: 65%;" id="anggaranDetailCatatan">-</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display: flex; gap: 10px;">
+        <button type="button" class="btn-primary" style="flex: 1;" onclick="openEditAnggaranModal()">
+          <i data-lucide="edit-2" style="width: 15px; height: 15px;"></i> Edit Data
+        </button>
+        <button type="button" class="btn-pill-action" style="color: var(--danger); border-color: rgba(212, 84, 95, 0.4); padding: 12px 18px;" onclick="deleteAnggaranItem()">
+          <i data-lucide="trash-2" style="width: 15px; height: 15px;"></i> Hapus
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: EDIT POS ANGGARAN
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalEditAnggaran">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Edit Pos Anggaran</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalEditAnggaran')">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitEditAnggaran();">
+        <div class="form-group">
+          <label class="form-label">Kategori Anggaran</label>
+          <select id="editAnggaranKategori" class="input-glass" required>
+            <option value="Venue">Venue</option>
+            <option value="Catering">Catering</option>
+            <option value="Dekorasi">Dekorasi</option>
+            <option value="MUA & Busana">MUA & Busana</option>
+            <option value="Dokumentasi">Dokumentasi</option>
+            <option value="Undangan & Souvenir">Undangan & Souvenir</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Lain-lain">Lain-lain</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Rincian Item / Kebutuhan</label>
+          <input type="text" id="editAnggaranItem" class="input-glass" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label">Estimasi Biaya (Rp)</label>
+            <input type="number" id="editAnggaranEstimasi" class="input-glass" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Biaya Riil (Rp)</label>
+            <input type="number" id="editAnggaranBiayaRiil" class="input-glass" required>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label">Jumlah Dibayar (Rp)</label>
+            <input type="number" id="editAnggaranJumlahBayar" class="input-glass" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Jatuh Tempo</label>
+            <input type="date" id="editAnggaranJatuhTempo" class="input-glass">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Catatan / Keterangan (Opsional)</label>
+          <input type="text" id="editAnggaranCatatan" class="input-glass" placeholder="Misal: Sudah DP 50%, sisa H-7">
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i data-lucide="check" style="width: 16px; height: 16px;"></i> Simpan Perubahan
         </button>
       </form>
     </div>
