@@ -1,0 +1,2001 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Hanjitur Organizer - Wedding Planner</title>
+  <meta name="description" content="Aplikasi mobile wedding planner Hanjitur Organizer dengan desain soft sage green glassmorphism, font rounded Quicksand, dan blossom floating menu.">
+  <meta name="theme-color" content="#528069">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <!-- Custom Transparent Background Image Layer -->
+  <div class="app-bg-image"></div>
+
+  <!-- Ambient Light Orbs for Glassmorphism Depth -->
+  <div class="ambient-glow">
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-3"></div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ==========================================================================
+       1. LOGIN SCREEN (Clean & Minimalist, No Logo)
+       ========================================================================== -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <h1 class="login-title">Hanjitur Organizer</h1>
+
+      <form id="loginForm" onsubmit="event.preventDefault(); handleLogin();">
+        <div class="form-group">
+          <label class="form-label">Akun Email</label>
+          <input type="email" id="loginEmail" class="input-glass" required autocomplete="email" placeholder="nama@email.com">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-password-wrapper">
+            <input type="password" id="loginPassword" class="input-glass" required autocomplete="current-password" placeholder="••••••••">
+            <button type="button" class="btn-toggle-password" id="togglePasswordBtn" onclick="togglePasswordVisibility()" title="Lihat/Sembunyikan Password">
+              <i data-lucide="eye" id="togglePasswordIcon" style="width: 18px; height: 18px;"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          Masuk
+        </button>
+
+        <div class="login-hint-box">
+          Akun Email Hanjitur & Password Yang Sama
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       2. MAIN APP CONTAINER (MOBILE VIEWPORT)
+       ========================================================================== -->
+  <div class="app-container" id="appShell">
+    
+    <!-- Top Header (Clean Minimalist, No Logo) -->
+    <header class="app-header">
+      <div class="brand-wrapper">
+        <h1 class="brand-title">Hanjitur Organizer</h1>
+      </div>
+      <div class="header-actions">
+        <div class="status-pill" id="syncStatusPill" title="Status Sinkronisasi Spreadsheet">
+          <span class="status-dot"></span>
+          <span id="syncStatusText">Demo Mode</span>
+        </div>
+        <button class="btn-icon" onclick="openSettingsModal()" title="Pengaturan & Sinkronisasi">
+          <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- App Content Panes -->
+    <main class="app-content">
+
+      <!-- ====================================================================
+           TAB 1: BERANDA / DASHBOARD
+           ==================================================================== -->
+      <section class="tab-pane active" id="tab-home">
+        <!-- Countdown Card (1 Baris Ringkas) -->
+        <div class="glass-card countdown-card-row">
+          <div class="countdown-row-left">
+            <span class="countdown-row-label">Menuju Hari Bahagia</span>
+            <span class="countdown-row-date" id="weddingDateDisplay">24 Desember 2026</span>
+          </div>
+          <div class="countdown-row-right">
+            <div class="cd-pill"><b id="timerDays">00</b><span>h</span></div>
+            <span class="cd-colon">:</span>
+            <div class="cd-pill"><b id="timerHours">00</b><span>j</span></div>
+            <span class="cd-colon">:</span>
+            <div class="cd-pill"><b id="timerMinutes">00</b><span>m</span></div>
+            <span class="cd-colon">:</span>
+            <div class="cd-pill"><b id="timerSeconds">00</b><span>d</span></div>
+          </div>
+        </div>
+
+        <!-- Quick Stats Grid (2 Baris Simpel per Card) -->
+        <div class="stats-grid">
+          <div class="glass-card stat-card-compact" onclick="switchTab('keuangan'); switchKeuanganSubtab('transaksi');" title="Buka Dompet & Transaksi">
+            <div class="stat-row-top">
+              <div class="stat-title-wrap">
+                <i data-lucide="wallet" style="width: 14px; height: 14px; color: var(--primary);"></i>
+                <span>Saldo Kas</span>
+              </div>
+              <span class="stat-sub-badge" id="dashWalletCount">0 Dompet</span>
+            </div>
+            <div class="stat-row-bottom">
+              <span class="stat-val-text" id="dashTotalSaldo">Rp 0</span>
+            </div>
+          </div>
+
+          <div class="glass-card stat-card-compact" onclick="switchTab('keuangan'); switchKeuanganSubtab('anggaran');" title="Buka Daftar Anggaran">
+            <div class="stat-row-top">
+              <div class="stat-title-wrap">
+                <i data-lucide="pie-chart" style="width: 14px; height: 14px; color: var(--gold);"></i>
+                <span>Sisa Bayar</span>
+              </div>
+              <span class="stat-sub-badge" id="dashProgressAnggaran">0% Terbayar</span>
+            </div>
+            <div class="stat-row-bottom">
+              <span class="stat-val-text" id="dashSisaAnggaran">Rp 0</span>
+            </div>
+          </div>
+
+          <div class="glass-card stat-card-compact" onclick="switchTab('tamu');" title="Buka Daftar Tamu Undangan">
+            <div class="stat-row-top">
+              <div class="stat-title-wrap">
+                <i data-lucide="users" style="width: 14px; height: 14px; color: var(--primary);"></i>
+                <span>Tamu Hadir</span>
+              </div>
+              <span class="stat-sub-badge" id="dashTotalTamu">0 Tamu • 0 Pax</span>
+            </div>
+            <div class="stat-row-bottom">
+              <span class="stat-val-text" id="dashTamuHadir">0</span>
+            </div>
+          </div>
+
+          <div class="glass-card stat-card-compact" onclick="switchTab('timeline');" title="Buka Timeline Agenda">
+            <div class="stat-row-top">
+              <div class="stat-title-wrap">
+                <i data-lucide="check-circle-2" style="width: 14px; height: 14px; color: var(--info);"></i>
+                <span>Timeline</span>
+              </div>
+              <span class="stat-sub-badge" id="dashTimelineCount">0 Selesai</span>
+            </div>
+            <div class="stat-row-bottom">
+              <span class="stat-val-text" id="dashTimelineDone">0%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upcoming Timeline Agenda -->
+        <div class="section-header">
+          <h3 class="section-title">Agenda Mendatang</h3>
+          <span class="section-link" onclick="switchTab('timeline')">Lihat Semua</span>
+        </div>
+        <div class="dash-scroll-frame" id="dashUpcomingTimelineList"></div>
+
+        <!-- Recent Transactions -->
+        <div class="section-header" style="margin-top: 18px;">
+          <h3 class="section-title">Transaksi Terkini</h3>
+          <span class="section-link" onclick="switchTab('keuangan')">Lihat Semua</span>
+        </div>
+        <div class="dash-scroll-frame" id="dashRecentTxList"></div>
+      </section>
+
+      <!-- ====================================================================
+           TAB 2: KEUANGAN (DOMPET, TRANSAKSI, ANGGARAN)
+           ==================================================================== -->
+      <section class="tab-pane" id="tab-keuangan">
+        <div class="subtabs-nav">
+          <button class="subtab-btn active" onclick="switchKeuanganSubtab('transaksi')">Dompet & Transaksi</button>
+          <button class="subtab-btn" onclick="switchKeuanganSubtab('anggaran')">Daftar Anggaran</button>
+        </div>
+
+        <!-- Sub-pane 1: Dompet & Transaksi -->
+        <div id="subpane-transaksi">
+          <!-- Fixed Top Section for Dompet Accordion & Tx Toolbar -->
+          <div class="subpane-fixed-top">
+            <!-- Dompet Accordion Card -->
+            <div class="glass-card wallet-accordion">
+              <div class="wallet-accordion-header" onclick="toggleWalletAccordion()">
+                <div class="wallet-accordion-left">
+                  <span class="wallet-accordion-title">Dompet</span>
+                  <span class="wallet-total-badge" id="walletTotalSummary">Rp 0</span>
+                </div>
+                <div class="wallet-header-actions">
+                  <button type="button" class="btn-add-wallet-pill" onclick="event.stopPropagation(); openModal('modalDompet');" title="Tambah Dompet">
+                    <i data-lucide="plus" style="width: 12px; height: 12px;"></i> Tambah
+                  </button>
+                  <div class="accordion-arrow rotated" id="walletAccordionArrow">
+                    <i data-lucide="chevron-down" style="width: 18px; height: 18px;"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="wallet-accordion-body" id="walletAccordionBody">
+                <div class="card-list" id="walletList"></div>
+              </div>
+            </div>
+
+            <!-- Riwayat Transaksi Header -->
+            <div class="section-header" style="margin-bottom: 8px;">
+              <h3 class="section-title">Riwayat Transaksi</h3>
+              <button class="btn-pill-action" onclick="openModal('modalTransaksi')">
+                <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Catat Transaksi
+              </button>
+            </div>
+
+            <!-- Filter (Icon Saja) & Searchbar -->
+            <div id="txWalletFilterChipContainer" style="display: none;">
+              <div class="wallet-filter-chip">
+                <span id="txWalletFilterChipText">Dompet: Mandiri</span>
+                <button type="button" onclick="clearTxWalletFilter()" title="Hapus Filter Dompet">
+                  <i data-lucide="x" style="width: 13px; height: 13px;"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="tx-toolbar">
+              <div class="tx-filter-icons">
+                <button type="button" class="icon-filter-btn active" id="filterTxAll" onclick="setTxFilter('all', this)" title="Semua Transaksi">
+                  <i data-lucide="layers" style="width: 16px; height: 16px;"></i>
+                </button>
+                <button type="button" class="icon-filter-btn" id="filterTxMasuk" onclick="setTxFilter('masuk', this)" title="Uang Masuk">
+                  <i data-lucide="arrow-down-left" style="width: 16px; height: 16px; color: var(--success);"></i>
+                </button>
+                <button type="button" class="icon-filter-btn" id="filterTxKeluar" onclick="setTxFilter('keluar', this)" title="Uang Keluar">
+                  <i data-lucide="arrow-up-right" style="width: 16px; height: 16px; color: var(--danger);"></i>
+                </button>
+                <button type="button" class="icon-filter-btn" id="filterTxDateBtn" onclick="toggleTxDateFilter()" title="Filter Tanggal">
+                  <i data-lucide="calendar" style="width: 16px; height: 16px;"></i>
+                </button>
+              </div>
+              <div class="tx-search-box">
+                <i data-lucide="search" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+                <input type="text" id="txSearchInput" placeholder="Cari transaksi..." oninput="filterTransactions()">
+              </div>
+            </div>
+
+            <!-- Date Filter Picker Row (Toggled via calendar icon) -->
+            <div class="tx-date-filter-row" id="txDateFilterRow" style="display: none;">
+              <input type="date" id="txDateInput" class="input-glass" style="padding: 6px 10px; font-size: 12px;" onchange="filterTransactions()">
+              <button type="button" class="btn-pill-action" style="padding: 6px 10px; font-size: 11px;" onclick="clearTxDateFilter()">
+                <i data-lucide="x" style="width: 12px; height: 12px;"></i> Reset
+              </button>
+            </div>
+          </div>
+
+          <!-- Scrollable Transaction Frame (Max 5 rows, scrollable) -->
+          <div class="tx-scroll-frame" id="txScrollFrame">
+            <div class="card-list" id="txHistoryList"></div>
+          </div>
+        </div>
+
+        <!-- Sub-pane 2: Anggaran -->
+        <div id="subpane-anggaran" style="display: none;">
+          <!-- Fixed Top Section for Summary & Header -->
+          <div class="subpane-fixed-top">
+            <div class="glass-card" style="padding: 14px 16px; margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span style="font-size: 11px; color: var(--text-muted); font-weight: 700;">STATUS PEMBAYARAN ANGGARAN</span>
+                <span style="font-size: 12px; color: var(--primary); font-weight: 700;" id="anggaranPercentText">0%</span>
+              </div>
+              <div class="progress-bar-bg" style="margin-bottom: 10px;">
+                <div class="progress-bar-fill" id="anggaranProgressBar" style="width: 0%;"></div>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center;">
+                <div>
+                  <div style="font-size: 9.5px; color: var(--text-muted);">Estimasi</div>
+                  <div style="font-size: 11.5px; font-weight: 700;" id="anggaranTotalEstimasi">Rp 0</div>
+                </div>
+                <div>
+                  <div style="font-size: 9.5px; color: var(--text-muted);">Terbayar</div>
+                  <div style="font-size: 11.5px; font-weight: 700; color: var(--success);" id="anggaranTotalTerbayar">Rp 0</div>
+                </div>
+                <div>
+                  <div style="font-size: 9.5px; color: var(--text-muted);">Sisa</div>
+                  <div style="font-size: 11.5px; font-weight: 700; color: var(--danger);" id="anggaranTotalSisa">Rp 0</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Rincian Pos Anggaran Header with Tambah Pos Anggaran Button -->
+            <div class="section-header" style="margin-bottom: 10px;">
+              <h3 class="section-title">Rincian Pos Anggaran</h3>
+              <button class="btn-pill-action" onclick="openModal('modalAnggaran')">
+                <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Tambah Pos
+              </button>
+            </div>
+          </div>
+
+          <!-- Categorized Accordion Scroll Frame -->
+          <div class="budget-scroll-frame" id="budgetScrollFrame">
+            <div id="budgetCategorizedList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           TAB 3: TIMELINE PERSIAPAN
+           ==================================================================== -->
+      <section class="tab-pane" id="tab-timeline">
+        <!-- Fixed Top Section (Non-Scroll) -->
+        <div class="subpane-fixed-top">
+          <div class="section-header" style="margin-bottom: 8px;">
+            <div>
+              <h3 class="section-title">Timeline Persiapan</h3>
+              <p style="font-size: 11px; color: var(--text-muted);">Checklist agenda menuju hari istimewa</p>
+            </div>
+            <button class="btn-pill-action" onclick="openModal('modalTimeline')">
+              <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Tambah
+            </button>
+          </div>
+
+          <!-- Toolbar Filter (Icon Saja) & Searchbox -->
+          <div class="tx-toolbar">
+            <div class="tx-filter-icons">
+              <button type="button" class="icon-filter-btn active" id="filterTlAll" onclick="setTimelineFilter('all', this)" title="Semua Agenda">
+                <i data-lucide="layers" style="width: 16px; height: 16px;"></i>
+              </button>
+              <button type="button" class="icon-filter-btn" id="filterTlPending" onclick="setTimelineFilter('pending', this)" title="Belum Selesai">
+                <i data-lucide="clock" style="width: 16px; height: 16px; color: #A6680A;"></i>
+              </button>
+              <button type="button" class="icon-filter-btn" id="filterTlDone" onclick="setTimelineFilter('done', this)" title="Selesai">
+                <i data-lucide="check-circle-2" style="width: 16px; height: 16px; color: var(--success);"></i>
+              </button>
+              <button type="button" class="icon-filter-btn" id="filterTlDateBtn" onclick="toggleTimelineDateFilter()" title="Filter Tanggal Deadline">
+                <i data-lucide="calendar" style="width: 16px; height: 16px;"></i>
+              </button>
+            </div>
+            <div class="tx-search-box">
+              <i data-lucide="search" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+              <input type="text" id="tlSearchInput" placeholder="Cari agenda timeline..." oninput="filterTimelineSearch()">
+            </div>
+          </div>
+
+          <!-- Date Filter Picker Row (Toggled via calendar icon) -->
+          <div class="tx-date-filter-row" id="tlDateFilterRow" style="display: none;">
+            <input type="date" id="tlDateInput" class="input-glass" style="padding: 6px 10px; font-size: 12px;" onchange="filterTimelineSearch()">
+            <button type="button" class="btn-pill-action" style="padding: 6px 10px; font-size: 11px;" onclick="clearTimelineDateFilter()">
+              <i data-lucide="x" style="width: 12px; height: 12px;"></i> Reset
+            </button>
+          </div>
+        </div>
+
+        <!-- Scrollable Timeline List Frame -->
+        <div class="timeline-scroll-frame" id="timelineScrollFrame">
+          <div class="card-list" id="timelineList"></div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           TAB 4: RUNDOWN HARI H (SHEET BARU)
+           ==================================================================== -->
+      <section class="tab-pane" id="tab-rundown">
+        <div class="section-header">
+          <h3 class="section-title">Rundown Acara Hari H</h3>
+          <button class="btn-pill-action" onclick="openModal('modalRundown')">
+            <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Tambah Rundown
+          </button>
+        </div>
+
+        <div class="card-list" id="rundownList">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           TAB 5: VENDOR DIRECTORY (TOTAL BIAYA & DP)
+           ==================================================================== -->
+      <section class="tab-pane" id="tab-vendor">
+        <div class="section-header">
+          <h3 class="section-title">Daftar Vendor & Product</h3>
+          <button class="btn-pill-action" onclick="openModal('modalVendor')">
+            <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Tambah
+          </button>
+        </div>
+
+        <!-- Filter Status (Icon Saja) & Searchbar -->
+        <div class="tx-toolbar" style="margin-bottom: 12px;">
+          <div class="tx-filter-icons">
+            <button type="button" class="icon-filter-btn active" id="filterVdAll" onclick="setVendorStatusFilter('all', this)" title="Semua">
+              <i data-lucide="layers" style="width: 16px; height: 16px;"></i>
+            </button>
+            <button type="button" class="icon-filter-btn" id="filterVdRiset" onclick="setVendorStatusFilter('riset', this)" title="Survey / Riset">
+              <i data-lucide="compass" style="width: 16px; height: 16px; color: #2E6B9E;"></i>
+            </button>
+            <button type="button" class="icon-filter-btn" id="filterVdNego" onclick="setVendorStatusFilter('nego', this)" title="Negosiasi">
+              <i data-lucide="scale" style="width: 16px; height: 16px; color: #A6680A;"></i>
+            </button>
+            <button type="button" class="icon-filter-btn" id="filterVdDeal" onclick="setVendorStatusFilter('deal', this)" title="Deal (DP)">
+              <i data-lucide="handshake" style="width: 16px; height: 16px; color: var(--primary);"></i>
+            </button>
+            <button type="button" class="icon-filter-btn" id="filterVdLunas" onclick="setVendorStatusFilter('lunas', this)" title="Lunas">
+              <i data-lucide="check-check" style="width: 16px; height: 16px; color: var(--success);"></i>
+            </button>
+          </div>
+          <div class="tx-search-box">
+            <i data-lucide="search" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+            <input type="text" id="vdSearchInput" placeholder="Cari vendor atau produk..." oninput="filterVendorSearch()">
+          </div>
+        </div>
+
+        <div class="card-list" id="vendorList"></div>
+      </section>
+
+      <!-- ====================================================================
+           TAB 6: TAMU UNDANGAN (RSVP & JUMLAH PAX)
+           ==================================================================== -->
+      <section class="tab-pane" id="tab-tamu">
+        <!-- Area Paten (Tidak Ikut Discroll) -->
+        <div class="subpane-fixed-top">
+          <div class="section-header">
+            <h3 class="section-title">Daftar Tamu Undangan</h3>
+            <button class="btn-pill-action" onclick="openModal('modalTamu')">
+              <i data-lucide="user-plus" style="width: 14px; height: 14px;"></i> Tambah Tamu
+            </button>
+          </div>
+
+          <!-- Guest Stats Bar (Total Tamu & Pax) -->
+          <div class="glass-card" style="padding: 10px 14px; margin-bottom: 10px; display: flex; justify-content: space-around; text-align: center;">
+            <div>
+              <div style="font-size: 10px; color: var(--text-muted);">Total Undangan</div>
+              <div style="font-size: 14px; font-weight: 700;" id="tamuStatTotal">0</div>
+            </div>
+            <div>
+              <div style="font-size: 10px; color: var(--gold);">Total Pax</div>
+              <div style="font-size: 14px; font-weight: 700; color: var(--gold);" id="tamuStatTotalPax">0</div>
+            </div>
+            <div>
+              <div style="font-size: 10px; color: var(--success);">Hadir</div>
+              <div style="font-size: 14px; font-weight: 700; color: var(--success);" id="tamuStatHadir">0</div>
+            </div>
+            <div>
+              <div style="font-size: 10px; color: var(--warning);">Menunggu</div>
+              <div style="font-size: 14px; font-weight: 700; color: var(--warning);" id="tamuStatPending">0</div>
+            </div>
+          </div>
+
+          <!-- Toolbar: Searchbar & 1 Filter Icon Button -->
+          <div class="tamu-toolbar-wrap" style="position: relative; margin-bottom: 10px; display: flex; gap: 8px; align-items: center;">
+            <div class="tx-search-box" style="flex: 1;">
+              <i data-lucide="search" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+              <input type="text" id="searchTamuInput" placeholder="Cari nama tamu undangan..." oninput="filterGuests()">
+            </div>
+            <div style="position: relative;">
+              <button type="button" class="icon-filter-btn" id="btnFilterTamuCat" onclick="toggleTamuCategoryDropdown(event)" title="Filter Kategori">
+                <i data-lucide="filter" style="width: 16px; height: 16px;"></i>
+              </button>
+              <!-- Category Filter Popover Menu -->
+              <div class="tamu-cat-dropdown glass-card" id="tamuCatDropdown" style="display: none;">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scrollable Guest List Frame -->
+        <div class="tamu-scroll-frame" id="guestList"></div>
+      </section>
+
+      <!-- ====================================================================
+           TAB 7: KNOWLEDGE & FILES
+           ==================================================================== -->
+      <section class="tab-pane" id="tab-knowledge">
+        <div class="subtabs-nav">
+          <button class="subtab-btn active" onclick="switchKnowledgeSubtab('knowledge')">Knowledge & Target</button>
+          <button class="subtab-btn" onclick="switchKnowledgeSubtab('files')">Dokumen & Files</button>
+        </div>
+
+        <div id="subpane-knowledge">
+          <div class="section-header">
+            <h3 class="section-title">Target & Progres Persiapan</h3>
+            <button class="btn-pill-action" onclick="openModal('modalKnowledge')">
+              <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Tambah
+            </button>
+          </div>
+          <div class="tx-search-box" style="margin-bottom: 12px;">
+            <i data-lucide="search" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+            <input type="text" id="searchKnowledgeInput" placeholder="Cari target atau kategori..." oninput="filterKnowledge()">
+          </div>
+          <div class="card-list" id="knowledgeList"></div>
+        </div>
+
+        <div id="subpane-files" style="display: none;">
+          <div class="section-header">
+            <h3 class="section-title">Dokumen & Berkas Digital</h3>
+            <button class="btn-pill-action" onclick="openModal('modalFile')">
+              <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Tambah
+            </button>
+          </div>
+          <div class="tx-search-box" style="margin-bottom: 12px;">
+            <i data-lucide="search" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+            <input type="text" id="searchFilesInput" placeholder="Cari nama berkas atau keterangan..." oninput="filterFiles()">
+          </div>
+          <div class="card-list" id="filesList"></div>
+        </div>
+
+        <!-- Sub-pane 3: Halaman Khusus Isian Knowledge -->
+        <div id="subpane-isian-knowledge" style="display: none;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <button type="button" class="btn-back-link" onclick="closeIsianKnowledgeView()" style="background: none; border: none; font-size: 12.5px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 5px; cursor: pointer; padding: 4px 0;">
+              <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Kembali ke Target
+            </button>
+            <button class="btn-pill-action" onclick="openTambahIsianModal()">
+              <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Tambah Isian
+            </button>
+          </div>
+
+          <!-- Target Info Banner -->
+          <div class="glass-card" style="padding: 12px 14px; margin-bottom: 12px; border-left: 4px solid var(--primary);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+              <span class="timeline-cat-pill" id="isianKnParentCategory">Administrasi</span>
+              <span class="tx-status-badge" id="isianKnParentStatus">On Progress</span>
+            </div>
+            <h3 id="isianKnParentTitle" style="font-size: 15px; font-weight: 700; color: var(--text-dark); margin-bottom: 6px;">Judul Target</h3>
+            <div style="font-size: 11px; color: var(--text-muted);" id="isianKnParentProgress">Capaian: 0 dari 100 % (0%)</div>
+          </div>
+
+          <!-- Searchbar Isian -->
+          <div class="tx-search-box" style="margin-bottom: 12px;">
+            <i data-lucide="search" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+            <input type="text" id="searchIsianInput" placeholder="Cari topik atau isi catatan..." oninput="filterIsianKnowledge()">
+          </div>
+
+          <!-- List Isian Grouped by Bagian -->
+          <div id="isianKnowledgeList" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- ==========================================================================
+       3. DRAGGABLE BLOSSOM FLOATING RADIAL MENU
+       ========================================================================== -->
+  <!-- Backdrop when Blossom is Open -->
+  <div class="blossom-backdrop" id="blossomBackdrop" onclick="toggleBlossomMenu(false)"></div>
+
+  <!-- Blossom Floating Menu Container (Draggable) -->
+  <div class="blossom-menu-wrapper" id="blossomMenuWrapper">
+    <!-- Center Trigger Button (Glass Circle) -->
+    <div class="blossom-trigger" id="blossomTrigger" title="Menu Navigasi (Geser untuk memindahkan)">
+      <i data-lucide="plus" style="width: 26px; height: 26px;"></i>
+    </div>
+
+    <!-- Blossom Radial Petal Items -->
+    <div class="blossom-items" id="blossomItems">
+      <!-- 1. Beranda -->
+      <button class="blossom-item" onclick="onBlossomNavigate('home')" title="Beranda" style="--tx: 0px; --ty: -80px;">
+        <i data-lucide="home" style="width: 18px; height: 18px;"></i>
+        <span class="blossom-tooltip">Beranda</span>
+      </button>
+      <!-- 2. Keuangan -->
+      <button class="blossom-item" onclick="onBlossomNavigate('keuangan')" title="Keuangan" style="--tx: 56px; --ty: -56px;">
+        <i data-lucide="wallet" style="width: 18px; height: 18px;"></i>
+        <span class="blossom-tooltip">Keuangan</span>
+      </button>
+      <!-- 3. Timeline -->
+      <button class="blossom-item" onclick="onBlossomNavigate('timeline')" title="Timeline" style="--tx: 80px; --ty: 0px;">
+        <i data-lucide="calendar" style="width: 18px; height: 18px;"></i>
+        <span class="blossom-tooltip">Timeline</span>
+      </button>
+      <!-- 4. Rundown Hari H -->
+      <button class="blossom-item" onclick="onBlossomNavigate('rundown')" title="Rundown Hari H" style="--tx: 56px; --ty: 56px;">
+        <i data-lucide="clock" style="width: 18px; height: 18px;"></i>
+        <span class="blossom-tooltip">Rundown</span>
+      </button>
+      <!-- 5. Vendor & Product -->
+      <button class="blossom-item" onclick="onBlossomNavigate('vendor')" title="Vendor & Product" style="--tx: 0px; --ty: 80px;">
+        <i data-lucide="store" style="width: 18px; height: 18px;"></i>
+        <span class="blossom-tooltip">Vendor & Product</span>
+      </button>
+      <!-- 6. Tamu Undangan -->
+      <button class="blossom-item" onclick="onBlossomNavigate('tamu')" title="Tamu Undangan" style="--tx: -56px; --ty: 56px;">
+        <i data-lucide="users" style="width: 18px; height: 18px;"></i>
+        <span class="blossom-tooltip">Tamu & RSVP</span>
+      </button>
+      <!-- 7. Knowledge & Files -->
+      <button class="blossom-item" onclick="onBlossomNavigate('knowledge')" title="Info & Files" style="--tx: -80px; --ty: 0px;">
+        <i data-lucide="book-open" style="width: 18px; height: 18px;"></i>
+        <span class="blossom-tooltip">Knowledge</span>
+      </button>
+      <!-- 8. Pengaturan -->
+      <button class="blossom-item" onclick="openSettingsModal(); toggleBlossomMenu(false);" title="Pengaturan" style="--tx: -56px; --ty: -56px;">
+        <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
+        <span class="blossom-tooltip">Pengaturan</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 1: PENGATURAN & SINKRONISASI SPREADSHEET
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalSettings">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Pengaturan & Master Data</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalSettings')">&times;</button>
+      </div>
+
+      <!-- Tombol Sinkronkan Data -->
+      <div style="margin-bottom: 16px;">
+        <button type="button" class="btn-primary" style="width: 100%; padding: 10px 14px; font-size: 12.5px; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="syncFromSpreadsheet()">
+          <i data-lucide="refresh-cw" style="width: 15px; height: 15px;"></i> Sinkronkan Data
+        </button>
+      </div>
+
+      <!-- Tanggal Hari H -->
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label class="form-label">Tanggal Hari H Pernikahan</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="datetime-local" id="settingWeddingDate" class="input-glass" style="flex: 1;">
+          <button type="button" class="btn-primary" style="padding: 8px 14px; font-size: 12px; white-space: nowrap;" onclick="saveWeddingDateSetting()">
+            <i data-lucide="save" style="width: 13px; height: 13px;"></i> Simpan
+          </button>
+        </div>
+      </div>
+
+      <!-- Kelola Kategori Master -->
+      <div style="margin-bottom: 18px; border-top: 1px solid rgba(82, 128, 105, 0.15); padding-top: 14px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+          <label class="form-label" style="margin: 0; font-size: 12.5px; font-weight: 700; color: var(--text-dark);">
+            <i data-lucide="layers" style="width: 14px; height: 14px; vertical-align: middle; color: var(--primary);"></i> Kelola Kategori Master
+          </label>
+          <button type="button" class="btn-pill-action" style="font-size: 11px; padding: 4px 10px;" onclick="openAddMasterCategoryModal()">
+            <i data-lucide="plus" style="width: 12px; height: 12px;"></i> Tambah
+          </button>
+        </div>
+
+        <!-- Subtabs Pilihan Kategori Master -->
+        <div class="subtabs-nav" style="margin-bottom: 10px;">
+          <button type="button" class="subtab-btn active" id="btnMasterTabTimeline" onclick="switchMasterCategoryTab('timeline')">Timeline</button>
+          <button type="button" class="subtab-btn" id="btnMasterTabVendor" onclick="switchMasterCategoryTab('vendor')">Vendor</button>
+          <button type="button" class="subtab-btn" id="btnMasterTabTamu" onclick="switchMasterCategoryTab('tamu')">Tamu</button>
+        </div>
+
+        <!-- Master Category Items List -->
+        <div id="masterCategoryListContainer" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 2px;"></div>
+      </div>
+
+      <hr style="border: 0; border-top: 1px solid rgba(82, 128, 105, 0.15); margin: 16px 0 12px 0;">
+
+      <button type="button" class="btn-pill-action" style="width: 100%; color: var(--danger); border-color: rgba(212, 84, 95, 0.3);" onclick="handleLogout()">
+        <i data-lucide="log-out" style="width: 16px; height: 16px;"></i> Keluar dari Aplikasi (Logout)
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal Tambah / Edit Kategori Master -->
+  <div class="modal-overlay" id="modalMasterCategory">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title" id="modalMasterCatTitle">Tambah Kategori Master</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalMasterCategory')">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitMasterCategoryForm();">
+        <div class="form-group">
+          <label class="form-label" id="modalMasterCatLabel">Nama Kategori</label>
+          <input type="text" id="masterCategoryInput" class="input-glass" placeholder="Misal: H-6 Bulan, Catering, Keluarga Inti..." required>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i data-lucide="check" style="width: 16px; height: 16px;"></i> Simpan Kategori
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 2: CATAT TRANSAKSI KEUANGAN
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalTransaksi">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Catat Transaksi Keuangan</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalTransaksi')">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitTransaksi();">
+        <div class="form-group">
+          <label class="form-label">Jenis Transaksi</label>
+          <select id="txType" class="input-glass" onchange="onTxTypeChange()">
+            <option value="Keluar">Pengeluaran</option>
+            <option value="Masuk">Pemasukan</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Dompet</label>
+          <select id="txWallet" class="input-glass" required></select>
+        </div>
+
+        <!-- Dynamic Group: Pengeluaran Fields (Connected to Anggaran) -->
+        <div id="txPengeluaranGroup">
+          <div class="form-group">
+            <label class="form-label">Kategori (Anggaran)</label>
+            <select id="txCategory" class="input-glass" onchange="onTxCategoryChange()">
+              <!-- Populated dynamically from Anggaran -->
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Rincian Item (Anggaran)</label>
+            <select id="txItemNameSelect" class="input-glass" onchange="onTxItemSelectChange()">
+              <!-- Populated dynamically from Anggaran items -->
+            </select>
+          </div>
+
+          <div class="form-group" id="txCustomItemContainer" style="display: none;">
+            <label class="form-label">Rincian Item Lainnya</label>
+            <input type="text" id="txItemNameCustom" class="input-glass" placeholder="Masukkan rincian item pengeluaran">
+          </div>
+        </div>
+
+        <!-- Dynamic Group: Pemasukan Fields (Hidden by default) -->
+        <div id="txPemasukanGroup" style="display: none;">
+          <div class="form-group">
+            <label class="form-label">Keterangan</label>
+            <input type="text" id="txKeteranganPemasukan" class="input-glass" placeholder="Misal: Tambahan tabungan bersama / Hadiah">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nominal (Rp)</label>
+          <input type="number" id="txAmount" class="input-glass" placeholder="0" min="1000" required>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i data-lucide="check" style="width: 16px; height: 16px;"></i> Simpan Transaksi
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 3: TAMBAH TAMU UNDANGAN (DENGAN JUMLAH PAX)
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalTamu">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Tambah Tamu Undangan</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalTamu')">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitTamu();">
+        <div class="form-group">
+          <label class="form-label">Nama Tamu</label>
+          <input type="text" id="tamuNama" class="input-glass" placeholder="Nama Lengkap / Tamu Utama" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Kategori Tamu</label>
+          <select id="tamuKategori" class="input-glass"></select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Jumlah Pax (Porsi)</label>
+          <input type="number" id="tamuPax" class="input-glass" value="1" min="1" max="10" required oninput="renderTamuPaxNamesInput(this.value, 'tamuPaxNamesContainer')">
+        </div>
+
+        <!-- Dynamic Pax Names Container (Muncul jika Pax > 1) -->
+        <div id="tamuPaxNamesContainer" style="display: none; background: rgba(82, 128, 105, 0.06); padding: 10px 12px; border-radius: var(--radius-sm); margin-bottom: 12px;"></div>
+
+        <div class="form-group">
+          <label class="form-label">Nomor WhatsApp</label>
+          <input type="tel" id="tamuNomorWA" class="input-glass" placeholder="628123456789" required>
+          <small style="font-size: 10.5px; color: var(--text-muted); display: block; margin-top: 3px;">Gunakan kode negara, contoh: 628123456789</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Status Kehadiran</label>
+          <select id="tamuStatus" class="input-glass">
+            <option value="Belum Diundang">Belum Diundang</option>
+            <option value="Terkirim">Terkirim (Menunggu)</option>
+            <option value="Hadir">Konfirmasi Hadir</option>
+            <option value="Tidak Hadir">Tidak Hadir</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i data-lucide="user-check" style="width: 16px; height: 16px;"></i> Simpan Tamu
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 4: TAMBAH TIMELINE
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalTimeline">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Tambah Agenda Timeline</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalTimeline')">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitTimeline();">
+        <div class="form-group">
+          <label class="form-label">Kategori</label>
+          <select id="tlKategori" class="input-glass"></select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nama Agenda / Item</label>
+          <input type="text" id="tlItem" class="input-glass" placeholder="Misal: Fitting Gaun Pengantin Kedua" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Deadline</label>
+          <input type="date" id="tlDeadline" class="input-glass" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Catatan Tambahan</label>
+          <input type="text" id="tlCatatan" class="input-glass" placeholder="Catatan lokasi atau kontak...">
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i data-lucide="calendar-check" style="width: 16px; height: 16px;"></i> Simpan Agenda
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 5: TAMBAH VENDOR (DENGAN TOTAL BIAYA & NOMINAL DP)
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalVendor">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Tambah Vendor & Product</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalVendor')">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitVendor();">
+        <div class="form-group">
+          <label class="form-label">Nama Vendor & Product</label>
+          <input type="text" id="vendorNama" class="input-glass" placeholder="Misal: Mahligai Wedding Decor" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Kategori</label>
+          <select id="vendorKategori" class="input-glass"></select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Total Biaya (Rp)</label>
+          <input type="number" id="vendorTotalBiaya" class="input-glass" placeholder="0" min="0" value="0">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Minimal DP (Rp)</label>
+          <input type="number" id="vendorNominalDP" class="input-glass" placeholder="0" min="0" value="0">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nomor WhatsApp</label>
+          <input type="tel" id="vendorNomor" class="input-glass" placeholder="08123456789">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Link</label>
+          <input type="url" id="vendorLink" class="input-glass" placeholder="https://instagram.com/...">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select id="vendorStatus" class="input-glass">
+            <option value="Survey">Survey / Riset</option>
+            <option value="Negosiasi">Negosiasi</option>
+            <option value="Deal (DP)">Deal (DP)</option>
+            <option value="Lunas">Lunas</option>
+            <option value="Batal">Batal</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Keterangan</label>
+          <input type="text" id="vendorKeterangan" class="input-glass" placeholder="Paket Gold, Termasuk Pelaminan 8m...">
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i data-lucide="store" style="width: 16px; height: 16px;"></i> Simpan Vendor & Product
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 6: TAMBAH RUNDOWN HARI H (SHEET BARU)
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalRundown">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Tambah Rundown Hari H</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalRundown')">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitRundown();">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label">Waktu Mulai</label>
+            <input type="time" id="rdStart" class="input-glass" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Waktu Selesai</label>
+            <input type="time" id="rdEnd" class="input-glass" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Kegiatan / Acara</label>
+          <input type="text" id="rdKegiatan" class="input-glass" placeholder="Misal: Prosesi Akad Nikah & Ijab Qobul" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Penanggung Jawab (PIC)</label>
+          <input type="text" id="rdPIC" class="input-glass" placeholder="Misal: Pak Ahmad (Keluarga) / MC" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Lokasi</label>
+          <input type="text" id="rdLokasi" class="input-glass" placeholder="Misal: Pelaminan Utama / Ruang Rias" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Catatan Khusus</label>
+          <input type="text" id="rdCatatan" class="input-glass" placeholder="Misal: Sound system dan mic standby">
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i data-lucide="clock" style="width: 16px; height: 16px;"></i> Simpan Rundown
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 7: TAMBAH DOMPET
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalDompet">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Tambah Dompet / Rekening</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalDompet')">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitDompet();">
+        <div class="form-group">
+          <label class="form-label">Nama Dompet / Rekening</label>
+          <input type="text" id="dompetNama" class="input-glass" placeholder="Misal: Bank Syariah Indonesia (BSI)" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Saldo Awal (Rp)</label>
+          <input type="number" id="dompetSaldo" class="input-glass" placeholder="0" min="0" value="0" required>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i data-lucide="wallet" style="width: 16px; height: 16px;"></i> Simpan Dompet
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 8: TAMBAH POS ANGGARAN
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalAnggaran">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Tambah Pos Anggaran</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalAnggaran')">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitAnggaran();">
+        <div class="form-group">
+          <label class="form-label">Kategori Anggaran</label>
+          <select id="anggaranKategori" class="input-glass">
+            <option value="Venue">Venue / Gedung</option>
+            <option value="Catering">Catering</option>
+            <option value="Dekorasi">Dekorasi</option>
+            <option value="MUA & Busana">MUA & Busana</option>
+            <option value="Dokumentasi">Dokumentasi & Video</option>
+            <option value="Undangan & Souvenir">Undangan & Souvenir</option>
+            <option value="Musik & MC">Musik, Entertainment & MC</option>
+            <option value="KUA & Administrasi">KUA & Administrasi</option>
+            <option value="Lain-lain">Lain-lain / Cadangan</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nama Item Anggaran</label>
+          <input type="text" id="anggaranItem" class="input-glass" placeholder="Misal: Sewa Sound System Tambahan" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label">Estimasi (Rp)</label>
+            <input type="number" id="anggaranEstimasi" class="input-glass" placeholder="0" min="0" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Biaya Riil (Rp)</label>
+            <input type="number" id="anggaranBiayaRiil" class="input-glass" placeholder="0" min="0">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label">Jumlah Terbayar (Rp)</label>
+            <input type="number" id="anggaranJumlahBayar" class="input-glass" placeholder="0" min="0" value="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Jatuh Tempo</label>
+            <input type="date" id="anggaranJatuhTempo" class="input-glass">
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i> Simpan Pos Anggaran
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 9: KELOLA DOMPET (POPUP AKSI DOMPET)
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalDompetAction">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Kelola Dompet</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalDompetAction')">&times;</button>
+      </div>
+
+      <div class="dompet-action-header">
+        <div class="dompet-action-name" id="dompetActionName">Nama Dompet</div>
+        <div class="dompet-action-balance" id="dompetActionBalance">Rp 0</div>
+      </div>
+
+      <div class="dompet-actions-list">
+        <button type="button" class="dompet-action-btn primary" onclick="viewWalletTransactions()">
+          <i data-lucide="list-filter" style="width: 18px; height: 18px;"></i>
+          <span>Lihat Transaksi Dompet Ini</span>
+        </button>
+        <button type="button" class="dompet-action-btn" onclick="openEditWalletModal()">
+          <i data-lucide="edit-3" style="width: 18px; height: 18px;"></i>
+          <span>Edit Dompet</span>
+        </button>
+        <button type="button" class="dompet-action-btn danger" onclick="deleteWallet()">
+          <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
+          <span>Hapus Dompet</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 10: EDIT DOMPET
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalEditDompet">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Edit Dompet</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalEditDompet')">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitEditDompet();">
+        <div class="form-group">
+          <label class="form-label">Nama Dompet</label>
+          <input type="text" id="editDompetNama" class="input-glass" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Saldo (Rp)</label>
+          <input type="number" id="editDompetSaldo" class="input-glass" min="0" required>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i data-lucide="save" style="width: 16px; height: 16px;"></i> Simpan Perubahan
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 11: DETAIL AGENDA TIMELINE
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalTimelineDetail">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Detail Agenda</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalTimelineDetail')">&times;</button>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <span class="timeline-cat-pill" id="tlDetailCategory">Kategori</span>
+          <span class="timeline-status-pill" id="tlDetailStatus">Belum Selesai</span>
+        </div>
+        <h3 id="tlDetailTitle" style="font-size: 16px; font-weight: 700; color: var(--text-dark); margin-bottom: 10px; line-height: 1.35;">Judul Agenda</h3>
+        
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+          <i data-lucide="calendar" style="width: 14px; height: 14px; color: var(--primary);"></i>
+          <span>Deadline: <strong id="tlDetailDeadline" style="color: var(--text-dark);">-</strong></span>
+        </div>
+
+        <div id="tlDetailCatatanBox" style="background: rgba(82, 128, 105, 0.08); padding: 10px 12px; border-radius: var(--radius-sm); font-size: 12px; color: var(--text-dark);">
+          <div style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 2px;">Catatan:</div>
+          <p id="tlDetailCatatan" style="line-height: 1.4;">-</p>
+        </div>
+      </div>
+
+      <div class="dompet-actions-list">
+        <button type="button" class="dompet-action-btn primary" id="btnTlDetailToggle" onclick="toggleDetailTimelineStatus()">
+          <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i>
+          <span id="btnTlDetailToggleText">Tandai Selesai</span>
+        </button>
+        <button type="button" class="dompet-action-btn" onclick="openEditTimelineModal()">
+          <i data-lucide="edit-3" style="width: 18px; height: 18px;"></i>
+          <span>Edit Agenda</span>
+        </button>
+        <button type="button" class="dompet-action-btn danger" onclick="deleteTimelineItem()">
+          <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
+          <span>Hapus Agenda</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 12: EDIT AGENDA TIMELINE
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalTimelineEdit">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Edit Agenda Timeline</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalTimelineEdit')">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitEditTimeline();">
+        <div class="form-group">
+          <label class="form-label">Kategori</label>
+          <select id="editTlKategori" class="input-glass" required></select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nama Agenda / Item</label>
+          <input type="text" id="editTlItem" class="input-glass" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Deadline</label>
+          <input type="date" id="editTlDeadline" class="input-glass" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Catatan Tambahan</label>
+          <input type="text" id="editTlCatatan" class="input-glass">
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i data-lucide="save" style="width: 16px; height: 16px;"></i> Simpan Perubahan
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 13: DETAIL RUNDOWN ACARA
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalRundownDetail">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Detail Susunan Acara</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalRundownDetail')">&times;</button>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <div style="margin-bottom: 8px;">
+          <div class="rundown-time-badge" style="display: inline-flex;" id="rdDetailTimeBadge">
+            <i data-lucide="clock" style="width: 12px; height: 12px;"></i>
+            <span id="rdDetailTime">-</span>
+          </div>
+        </div>
+        <h3 id="rdDetailKegiatan" style="font-size: 16px; font-weight: 700; color: var(--text-dark); margin-bottom: 12px; line-height: 1.35;">Nama Acara</h3>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+          <div style="background: rgba(82, 128, 105, 0.06); padding: 8px 10px; border-radius: var(--radius-sm);">
+            <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">PIC</div>
+            <div id="rdDetailPIC" style="font-size: 12.5px; font-weight: 600; color: var(--text-dark); margin-top: 2px;">-</div>
+          </div>
+          <div style="background: rgba(82, 128, 105, 0.06); padding: 8px 10px; border-radius: var(--radius-sm);">
+            <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Lokasi</div>
+            <div id="rdDetailLokasi" style="font-size: 12.5px; font-weight: 600; color: var(--text-dark); margin-top: 2px;">-</div>
+          </div>
+        </div>
+
+        <div id="rdDetailCatatanBox" style="background: rgba(82, 128, 105, 0.08); padding: 10px 12px; border-radius: var(--radius-sm); font-size: 12px; color: var(--text-dark);">
+          <div style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 2px;">Catatan Tambahan:</div>
+          <p id="rdDetailCatatan" style="line-height: 1.4;">-</p>
+        </div>
+      </div>
+
+      <div class="dompet-actions-list">
+        <button type="button" class="dompet-action-btn primary" onclick="openEditRundownModal()">
+          <i data-lucide="edit-3" style="width: 18px; height: 18px;"></i>
+          <span>Edit Susunan Acara</span>
+        </button>
+        <button type="button" class="dompet-action-btn danger" onclick="deleteRundownItem()">
+          <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
+          <span>Hapus Acara</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 14: EDIT RUNDOWN ACARA
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalRundownEdit">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Edit Rundown Acara</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalRundownEdit')">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitEditRundown();">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label">Waktu Mulai</label>
+            <input type="time" id="editRdStart" class="input-glass" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Waktu Selesai</label>
+            <input type="time" id="editRdEnd" class="input-glass" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nama Kegiatan / Acara</label>
+          <input type="text" id="editRdKegiatan" class="input-glass" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">PIC / Penanggung Jawab</label>
+          <input type="text" id="editRdPIC" class="input-glass" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Lokasi Acara</label>
+          <input type="text" id="editRdLokasi" class="input-glass" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Catatan Tambahan</label>
+          <input type="text" id="editRdCatatan" class="input-glass">
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i data-lucide="save" style="width: 16px; height: 16px;"></i> Simpan Perubahan
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 15: DETAIL VENDOR & PRODUCT
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalVendorDetail">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Detail Vendor & Product</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalVendorDetail')">&times;</button>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <span class="timeline-cat-pill" id="vdDetailCategory">Kategori</span>
+          <span class="tx-status-badge" id="vdDetailStatus" style="font-size: 11px;">Status</span>
+        </div>
+        <h3 id="vdDetailName" style="font-size: 16px; font-weight: 700; color: var(--text-dark); margin-bottom: 10px; line-height: 1.35;">Nama Vendor</h3>
+        
+        <!-- Quick Change Status -->
+        <div style="background: rgba(82, 128, 105, 0.08); padding: 8px 12px; border-radius: var(--radius-sm); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <span style="font-size: 11.5px; font-weight: 700; color: var(--text-dark); white-space: nowrap;">Status:</span>
+          <select id="vdDetailStatusSelect" class="input-glass" style="padding: 4px 8px; font-size: 11.5px; width: auto; flex: 1;" onchange="quickChangeVendorStatus(this.value)">
+            <option value="Survey">Survey / Riset</option>
+            <option value="Negosiasi">Negosiasi</option>
+            <option value="Deal (DP)">Deal (DP)</option>
+            <option value="Lunas">Lunas</option>
+            <option value="Batal">Batal</option>
+          </select>
+        </div>
+
+        <!-- Financial Summary (Total Biaya & Min DP Booking - Sisa Tagihan Dihilangkan) -->
+        <div class="vendor-cost-summary" style="grid-template-columns: 1fr 1fr; margin-bottom: 12px;">
+          <div>
+            <div style="font-size: 9.5px; color: var(--text-muted);">Total Biaya</div>
+            <div id="vdDetailTotal" style="font-size: 13px; font-weight: 700;">Rp 0</div>
+          </div>
+          <div>
+            <div style="font-size: 9.5px; color: var(--text-muted);">Min. DP Booking</div>
+            <div id="vdDetailDP" style="font-size: 13px; font-weight: 700; color: var(--success);">Rp 0</div>
+          </div>
+        </div>
+
+        <!-- Contact & Portfolio Links -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <a id="vdDetailWA" href="#" target="_blank" class="btn-pill-action wa" style="flex: 1; text-align: center;">
+            <i data-lucide="message-circle" style="width: 14px; height: 14px;"></i> WhatsApp
+          </a>
+          <a id="vdDetailLink" href="#" target="_blank" class="btn-pill-action" style="flex: 1; text-align: center;">
+            <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Link
+          </a>
+        </div>
+
+        <!-- Keterangan Box -->
+        <div id="vdDetailKeteranganBox" style="background: rgba(82, 128, 105, 0.06); padding: 10px 12px; border-radius: var(--radius-sm); font-size: 12px; color: var(--text-dark);">
+          <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px;">Keterangan:</div>
+          <p id="vdDetailKeterangan" style="line-height: 1.4;">-</p>
+        </div>
+      </div>
+
+      <div class="dompet-actions-list">
+        <button type="button" class="dompet-action-btn primary" onclick="openEditVendorModal()">
+          <i data-lucide="edit-3" style="width: 18px; height: 18px;"></i>
+          <span>Edit Vendor & Product</span>
+        </button>
+        <button type="button" class="dompet-action-btn danger" onclick="deleteVendorItem()">
+          <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
+          <span>Hapus Vendor & Product</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 16: EDIT VENDOR & PRODUCT
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalVendorEdit">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Edit Vendor & Product</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalVendorEdit')">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitEditVendor();">
+        <div class="form-group">
+          <label class="form-label">Nama Vendor & Product</label>
+          <input type="text" id="editVdNama" class="input-glass" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Kategori</label>
+          <select id="editVdKategori" class="input-glass" required></select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Total Biaya (Rp)</label>
+          <input type="number" id="editVdTotalBiaya" class="input-glass" min="0" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Minimal DP (Rp)</label>
+          <input type="number" id="editVdNominalDP" class="input-glass" min="0" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nomor WhatsApp</label>
+          <input type="tel" id="editVdNomor" class="input-glass">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Link</label>
+          <input type="url" id="editVdLink" class="input-glass">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select id="editVdStatus" class="input-glass">
+            <option value="Survey">Survey / Riset</option>
+            <option value="Negosiasi">Negosiasi</option>
+            <option value="Deal (DP)">Deal (DP)</option>
+            <option value="Lunas">Lunas</option>
+            <option value="Batal">Batal</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Keterangan</label>
+          <input type="text" id="editVdKeterangan" class="input-glass">
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i data-lucide="save" style="width: 16px; height: 16px;"></i> Simpan Perubahan
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 17: DETAIL TAMU UNDANGAN
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalTamuDetail">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Detail Tamu Undangan</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalTamuDetail')">&times;</button>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <span class="timeline-cat-pill" id="tmDetailCategory">Keluarga</span>
+            <span class="guest-pax-badge" id="tmDetailPax" style="font-size: 11px;">1 Pax</span>
+          </div>
+          <span class="tx-status-badge" id="tmDetailStatusBadge" style="font-size: 11px;">Belum Diundang</span>
+        </div>
+        <h3 id="tmDetailName" style="font-size: 16px; font-weight: 700; color: var(--text-dark); margin-bottom: 10px; line-height: 1.35;">Nama Tamu</h3>
+
+        <!-- Quick Change Status RSVP -->
+        <div style="background: rgba(82, 128, 105, 0.08); padding: 8px 12px; border-radius: var(--radius-sm); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <span style="font-size: 11.5px; font-weight: 700; color: var(--text-dark); white-space: nowrap;">Status RSVP:</span>
+          <select id="tmDetailStatusSelect" class="input-glass" style="padding: 4px 8px; font-size: 11.5px; width: auto; flex: 1;" onchange="quickChangeTamuStatus(this.value)">
+            <option value="Belum Diundang">Belum Diundang</option>
+            <option value="Terkirim">Terkirim (Menunggu)</option>
+            <option value="Hadir">Konfirmasi Hadir</option>
+            <option value="Tidak Hadir">Tidak Hadir</option>
+          </select>
+        </div>
+
+        <!-- Daftar Nama Tamu (Jika Pax > 1) -->
+        <div id="tmDetailNamesBox" style="background: rgba(82, 128, 105, 0.06); padding: 10px 12px; border-radius: var(--radius-sm); margin-bottom: 12px;">
+          <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Daftar Nama Undangan:</div>
+          <div id="tmDetailNamesList" style="font-size: 12.5px; color: var(--text-dark); line-height: 1.5;"></div>
+        </div>
+
+        <!-- WhatsApp Info & Direct Action -->
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(82, 128, 105, 0.15); border-radius: var(--radius-sm); margin-bottom: 12px;">
+          <div>
+            <div style="font-size: 9.5px; color: var(--text-muted);">Nomor WhatsApp</div>
+            <div id="tmDetailWA" style="font-size: 13px; font-weight: 700; color: var(--text-dark);">-</div>
+          </div>
+          <a id="tmDetailWABtn" href="#" target="_blank" class="btn-pill-action wa" style="padding: 6px 12px;">
+            <i data-lucide="message-circle" style="width: 14px; height: 14px;"></i> Chat WA
+          </a>
+        </div>
+      </div>
+
+      <div class="dompet-actions-list">
+        <button type="button" class="dompet-action-btn primary" onclick="openEditTamuModal()">
+          <i data-lucide="edit-3" style="width: 18px; height: 18px;"></i>
+          <span>Edit Tamu Undangan</span>
+        </button>
+        <button type="button" class="dompet-action-btn danger" onclick="deleteTamuItem()">
+          <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
+          <span>Hapus Tamu Undangan</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 18: EDIT TAMU UNDANGAN
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalTamuEdit">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Edit Tamu Undangan</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalTamuEdit')">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitEditTamu();">
+        <div class="form-group">
+          <label class="form-label">Nama Tamu</label>
+          <input type="text" id="editTmNama" class="input-glass" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Kategori Tamu</label>
+          <select id="editTmKategori" class="input-glass" required></select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Jumlah Pax (Porsi)</label>
+          <input type="number" id="editTmPax" class="input-glass" min="1" max="10" required oninput="renderTamuPaxNamesInput(this.value, 'editTmPaxNamesContainer')">
+        </div>
+
+        <!-- Dynamic Pax Names Container Edit -->
+        <div id="editTmPaxNamesContainer" style="display: none; background: rgba(82, 128, 105, 0.06); padding: 10px 12px; border-radius: var(--radius-sm); margin-bottom: 12px;"></div>
+
+        <div class="form-group">
+          <label class="form-label">Nomor WhatsApp</label>
+          <input type="tel" id="editTmNomorWA" class="input-glass" placeholder="628123456789" required>
+          <small style="font-size: 10.5px; color: var(--text-muted); display: block; margin-top: 3px;">Gunakan kode negara, contoh: 628123456789</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Status Kehadiran</label>
+          <select id="editTmStatus" class="input-glass">
+            <option value="Belum Diundang">Belum Diundang</option>
+            <option value="Terkirim">Terkirim (Menunggu)</option>
+            <option value="Hadir">Konfirmasi Hadir</option>
+            <option value="Tidak Hadir">Tidak Hadir</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i data-lucide="save" style="width: 16px; height: 16px;"></i> Simpan Perubahan
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 19: TAMBAH TARGET & KNOWLEDGE
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalKnowledge">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Tambah Target & Knowledge</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalKnowledge')">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitKnowledge();">
+        <div class="form-group">
+          <label class="form-label">Kategori / Bagian</label>
+          <input type="text" id="knKategori" class="input-glass" list="knKategoriOptions" placeholder="Misal: Administrasi, Persiapan Fisik..." required>
+          <datalist id="knKategoriOptions">
+            <option value="Administrasi">
+            <option value="Persiapan Fisik">
+            <option value="Souvenir">
+            <option value="Busana & Rias">
+            <option value="Acara & Adat">
+            <option value="Logistik">
+            <option value="Lain-lain">
+          </datalist>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nama Target / Judul</label>
+          <input type="text" id="knJudul" class="input-glass" placeholder="Misal: Surat Rekomendasi KUA" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label">Target Angka</label>
+            <input type="number" id="knTarget" class="input-glass" value="100" min="1" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Satuan Target</label>
+            <input type="text" id="knSatuan" class="input-glass" placeholder="%, Pcs, Sesi..." value="%" required>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label">Progres Saat Ini</label>
+            <input type="number" id="knProgres" class="input-glass" value="0" min="0" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select id="knStatus" class="input-glass">
+              <option value="Belum Mulai">Belum Mulai</option>
+              <option value="On Progress" selected>On Progress</option>
+              <option value="Selesai">Selesai</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Tanggal Mulai</label>
+          <input type="date" id="knTanggalMulai" class="input-glass">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Catatan Tambahan</label>
+          <input type="text" id="knCatatan" class="input-glass" placeholder="Rincian atau dokumen pendukung...">
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i data-lucide="check-circle-2" style="width: 16px; height: 16px;"></i> Simpan Target
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 20: DETAIL KNOWLEDGE & TARGET
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalKnowledgeDetail">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Detail Target & Knowledge</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalKnowledgeDetail')">&times;</button>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <span class="timeline-cat-pill" id="knDetailCategory">Kategori</span>
+          <span class="tx-status-badge" id="knDetailStatus">On Progress</span>
+        </div>
+        <h3 id="knDetailJudul" style="font-size: 16px; font-weight: 700; color: var(--text-dark); margin-bottom: 10px; line-height: 1.35;">Nama Target</h3>
+
+        <!-- Progres Bar Card -->
+        <div class="glass-card" style="padding: 12px; margin-bottom: 12px; background: rgba(255, 255, 255, 0.85);">
+          <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">
+            <span>Capaian: <b id="knDetailProgressVal" style="color: var(--text-dark);">0</b> dari <span id="knDetailTargetVal">100</span> <span id="knDetailSatuanVal">%</span></span>
+            <span id="knDetailPctVal" style="font-weight: 700; color: var(--primary);">0%</span>
+          </div>
+          <div class="progress-bar-bg" style="margin-bottom: 10px;">
+            <div class="progress-bar-fill" id="knDetailProgressBar" style="width: 0%;"></div>
+          </div>
+
+          <!-- Update Progres Cepat -->
+          <div style="background: rgba(82, 128, 105, 0.08); padding: 10px 12px; border-radius: var(--radius-sm);">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-dark); margin-bottom: 6px;">Update Capaian Progres:</div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input type="number" id="knQuickProgressInput" class="input-glass" style="padding: 6px 10px; font-size: 13px; font-weight: 700; width: 100px;" min="0">
+              <button type="button" class="btn-primary" style="padding: 6px 14px; font-size: 12px; white-space: nowrap;" onclick="quickUpdateKnowledgeProgress()">
+                <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Update
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Info Tambahan -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; font-size: 11.5px;">
+          <div style="background: rgba(255, 255, 255, 0.7); padding: 8px 10px; border-radius: var(--radius-sm);">
+            <div style="font-size: 9.5px; color: var(--text-muted);">Mulai:</div>
+            <div id="knDetailMulai" style="font-weight: 600;">-</div>
+          </div>
+          <div style="background: rgba(255, 255, 255, 0.7); padding: 8px 10px; border-radius: var(--radius-sm);">
+            <div style="font-size: 9.5px; color: var(--text-muted);">Update Terakhir:</div>
+            <div id="knDetailUpdate" style="font-weight: 600;">-</div>
+          </div>
+        </div>
+
+        <!-- Catatan Box -->
+        <div id="knDetailCatatanBox" style="background: rgba(82, 128, 105, 0.06); padding: 10px 12px; border-radius: var(--radius-sm); font-size: 12px; color: var(--text-dark);">
+          <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px;">Catatan:</div>
+          <p id="knDetailCatatan" style="line-height: 1.4;">-</p>
+        </div>
+      </div>
+
+      <div class="dompet-actions-list">
+        <button type="button" class="dompet-action-btn primary" onclick="openIsianKnowledgeView(selectedKnowledgeId); closeModal('modalKnowledgeDetail');" style="background: rgba(82, 128, 105, 0.15); border-color: rgba(82, 128, 105, 0.35);">
+          <i data-lucide="book-open" style="width: 18px; height: 18px;"></i>
+          <span>Buka Halaman Isian Knowledge</span>
+        </button>
+        <button type="button" class="dompet-action-btn primary" onclick="openEditKnowledgeModal()">
+          <i data-lucide="edit-3" style="width: 18px; height: 18px;"></i>
+          <span>Edit Target & Knowledge</span>
+        </button>
+        <button type="button" class="dompet-action-btn danger" onclick="deleteKnowledgeItem()">
+          <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
+          <span>Hapus Target & Knowledge</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 21: EDIT TARGET & KNOWLEDGE
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalKnowledgeEdit">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Edit Target & Knowledge</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalKnowledgeEdit')">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitEditKnowledge();">
+        <div class="form-group">
+          <label class="form-label">Kategori / Bagian</label>
+          <input type="text" id="editKnKategori" class="input-glass" list="knKategoriOptions" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nama Target / Judul</label>
+          <input type="text" id="editKnJudul" class="input-glass" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label">Target Angka</label>
+            <input type="number" id="editKnTarget" class="input-glass" min="1" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Satuan Target</label>
+            <input type="text" id="editKnSatuan" class="input-glass" required>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label">Progres Saat Ini</label>
+            <input type="number" id="editKnProgres" class="input-glass" min="0" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select id="editKnStatus" class="input-glass">
+              <option value="Belum Mulai">Belum Mulai</option>
+              <option value="On Progress">On Progress</option>
+              <option value="Selesai">Selesai</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Tanggal Mulai</label>
+          <input type="date" id="editKnTanggalMulai" class="input-glass">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Catatan Tambahan</label>
+          <input type="text" id="editKnCatatan" class="input-glass">
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i data-lucide="save" style="width: 16px; height: 16px;"></i> Simpan Perubahan
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 22: TAMBAH DOKUMEN & FILE
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalFile">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Tambah Dokumen & Berkas</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalFile')">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitFile();">
+        <div class="form-group">
+          <label class="form-label">Nama Berkas / Dokumen</label>
+          <input type="text" id="flNama" class="input-glass" placeholder="Misal: Scan KTP & Surat Nikah KUA" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Jenis Berkas</label>
+          <select id="flJenis" class="input-glass" required>
+            <option value="PDF">PDF</option>
+            <option value="Drive">Google Drive</option>
+            <option value="Canva">Canva / Design</option>
+            <option value="Invoice">Invoice / Kuitansi</option>
+            <option value="Excel">Excel / Spreadsheet</option>
+            <option value="Word">Word / Dokumen</option>
+            <option value="Foto">Foto / Galeri</option>
+            <option value="Lain-lain">Lain-lain</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Tautan / Link Berkas</label>
+          <input type="url" id="flLink" class="input-glass" placeholder="https://drive.google.com/..." required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Keterangan Tambahan</label>
+          <input type="text" id="flKeterangan" class="input-glass" placeholder="Rincian atau isi berkas...">
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i data-lucide="upload-cloud" style="width: 16px; height: 16px;"></i> Simpan Berkas
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 23: DETAIL DOKUMEN & FILE
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalFileDetail">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Detail Dokumen & Berkas</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalFileDetail')">&times;</button>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <span class="timeline-cat-pill" id="flDetailJenis">PDF</span>
+        </div>
+        <h3 id="flDetailNama" style="font-size: 16px; font-weight: 700; color: var(--text-dark); margin-bottom: 12px; line-height: 1.35;">Nama Berkas</h3>
+
+        <!-- Link Preview Box -->
+        <div style="background: rgba(82, 128, 105, 0.08); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 12px;">
+          <div style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Tautan Berkas:</div>
+          <div id="flDetailLinkText" style="font-size: 12px; color: var(--primary); word-break: break-all; margin-bottom: 10px;">-</div>
+          <a id="flDetailOpenBtn" href="#" target="_blank" class="btn-pill-action" style="display: inline-flex; width: auto;" onclick="event.stopPropagation();">
+            <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Buka Tautan Berkas
+          </a>
+        </div>
+
+        <!-- Keterangan Box -->
+        <div id="flDetailKetBox" style="background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(82, 128, 105, 0.15); padding: 10px 12px; border-radius: var(--radius-sm); font-size: 12px; color: var(--text-dark);">
+          <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px;">Keterangan:</div>
+          <p id="flDetailKeterangan" style="line-height: 1.4;">-</p>
+        </div>
+      </div>
+
+      <div class="dompet-actions-list">
+        <button type="button" class="dompet-action-btn primary" onclick="openEditFileModal()">
+          <i data-lucide="edit-3" style="width: 18px; height: 18px;"></i>
+          <span>Edit Dokumen / Berkas</span>
+        </button>
+        <button type="button" class="dompet-action-btn danger" onclick="deleteFileItem()">
+          <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
+          <span>Hapus Dokumen / Berkas</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 24: EDIT DOKUMEN & FILE
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalFileEdit">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Edit Dokumen & Berkas</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalFileEdit')">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitEditFile();">
+        <div class="form-group">
+          <label class="form-label">Nama Berkas / Dokumen</label>
+          <input type="text" id="editFlNama" class="input-glass" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Jenis Berkas</label>
+          <select id="editFlJenis" class="input-glass" required>
+            <option value="PDF">PDF</option>
+            <option value="Drive">Google Drive</option>
+            <option value="Canva">Canva / Design</option>
+            <option value="Invoice">Invoice / Kuitansi</option>
+            <option value="Excel">Excel / Spreadsheet</option>
+            <option value="Word">Word / Dokumen</option>
+            <option value="Foto">Foto / Galeri</option>
+            <option value="Lain-lain">Lain-lain</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Tautan / Link Berkas</label>
+          <input type="url" id="editFlLink" class="input-glass" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Keterangan Tambahan</label>
+          <input type="text" id="editFlKeterangan" class="input-glass">
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i data-lucide="save" style="width: 16px; height: 16px;"></i> Simpan Perubahan
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 25: TAMBAH ISIAN KNOWLEDGE
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalTambahIsian">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Tambah Isian Knowledge</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalTambahIsian')">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitTambahIsian();">
+        <div class="form-group">
+          <label class="form-label">Kategori Bagian</label>
+          <input type="text" id="isianBagian" class="input-glass" list="isianBagianDatalist" placeholder="Misal: Syarat Administrasi, Kontak PIC..." required>
+          <datalist id="isianBagianDatalist"></datalist>
+          <small style="font-size: 10.5px; color: var(--text-muted); display: block; margin-top: 3px;">Ketik kategori bagian baru atau pilih yang sudah ada</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Judul / Topik Isian</label>
+          <input type="text" id="isianJudul" class="input-glass" placeholder="Misal: Daftar Berkas Wajib, Alur KUA..." required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Jenis Isian</label>
+          <select id="isianJenis" class="input-glass" onchange="onIsianJenisChange(this.value, 'isianKontenWrapper', 'isianKonten')">
+            <option value="Kata Singkat">Kata Singkat / Nilai Ringkas (Teks 1 Baris)</option>
+            <option value="Paragraf Panjang" selected>Paragraf Panjang / Catatan Rinci</option>
+            <option value="Daftar Poin">Daftar Poin / Checklist (Tiap Baris 1 Poin)</option>
+            <option value="Tautan URL">Tautan / Link Web</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="isianKontenWrapper">
+          <label class="form-label" id="isianKontenLabel">Isi Catatan / Keterangan</label>
+          <textarea id="isianKonten" class="input-glass" rows="4" placeholder="Tuliskan rincian isian di sini..." required style="resize: vertical; font-family: inherit;"></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i data-lucide="check" style="width: 16px; height: 16px;"></i> Simpan Isian
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 26: EDIT ISIAN KNOWLEDGE
+       ========================================================================== -->
+  <div class="modal-overlay" id="modalEditIsian">
+    <div class="bottom-sheet">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-header">
+        <h3 class="sheet-title">Edit Isian Knowledge</h3>
+        <button class="btn-close-sheet" onclick="closeModal('modalEditIsian')">&times;</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitEditIsian();">
+        <div class="form-group">
+          <label class="form-label">Kategori Bagian</label>
+          <input type="text" id="editIsianBagian" class="input-glass" list="isianBagianDatalist" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Judul / Topik Isian</label>
+          <input type="text" id="editIsianJudul" class="input-glass" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Jenis Isian</label>
+          <select id="editIsianJenis" class="input-glass" onchange="onIsianJenisChange(this.value, 'editIsianKontenWrapper', 'editIsianKonten')">
+            <option value="Kata Singkat">Kata Singkat / Nilai Ringkas (Teks 1 Baris)</option>
+            <option value="Paragraf Panjang">Paragraf Panjang / Catatan Rinci</option>
+            <option value="Daftar Poin">Daftar Poin / Checklist (Tiap Baris 1 Poin)</option>
+            <option value="Tautan URL">Tautan / Link Web</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="editIsianKontenWrapper">
+          <label class="form-label" id="editIsianKontenLabel">Isi Catatan / Keterangan</label>
+          <textarea id="editIsianKonten" class="input-glass" rows="4" required style="resize: vertical; font-family: inherit;"></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <i data-lucide="save" style="width: 16px; height: 16px;"></i> Simpan Perubahan
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- JavaScript Application File -->
+  <script src="app.js"></script>
+</body>
+</html>
