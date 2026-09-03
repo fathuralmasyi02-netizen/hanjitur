@@ -113,28 +113,33 @@ function handleLogout() {
 }
 
 // ============================================================================
-// 3. DRAGGABLE BLOSSOM FLOATING RADIAL MENU
+// 3. DRAGGABLE BLOSSOM FLOATING RADIAL MENU (Edge Docking & Safe Bloom)
 // ============================================================================
 let isBlossomOpen = false;
+let dockedBlossomPosition = { x: 0, y: 0 };
 
 function initDraggableBlossomMenu() {
   const wrapper = document.getElementById('blossomMenuWrapper');
   const trigger = document.getElementById('blossomTrigger');
   if (!wrapper || !trigger) return;
 
+  const triggerSize = 58;
+  const padding = 12;
+
   // Restore saved position or set default position
   const savedPos = localStorage.getItem(STORAGE_KEYS.BLOSSOM_POS);
   if (savedPos) {
     try {
       const pos = JSON.parse(savedPos);
-      wrapper.style.left = `${pos.x}px`;
-      wrapper.style.top = `${pos.y}px`;
+      dockedBlossomPosition = calculateNearestEdge(pos.x, pos.y, triggerSize, padding);
     } catch (e) {
-      setDefaultBlossomPosition(wrapper);
+      dockedBlossomPosition = getDefaultBlossomPosition(triggerSize, padding);
     }
   } else {
-    setDefaultBlossomPosition(wrapper);
+    dockedBlossomPosition = getDefaultBlossomPosition(triggerSize, padding);
   }
+
+  applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, false);
 
   // Drag interaction states
   let isDragging = false;
@@ -173,25 +178,23 @@ function initDraggableBlossomMenu() {
     const dx = clientX - startX;
     const dy = clientY - startY;
 
-    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
       hasMoved = true;
-      // If user drags while blossom is open, close it
+      // Close blossom menu if user begins dragging
       if (isBlossomOpen) toggleBlossomMenu(false);
     }
 
     let newX = initialLeft + dx;
     let newY = initialTop + dy;
 
-    // Viewport constraints (keep button visible)
-    const padding = 15;
-    const maxX = window.innerWidth - wrapper.offsetWidth - padding;
-    const maxY = window.innerHeight - wrapper.offsetHeight - padding;
+    // Viewport constraints while freely dragging
+    const maxX = window.innerWidth - triggerSize - padding;
+    const maxY = window.innerHeight - triggerSize - padding;
 
     newX = Math.max(padding, Math.min(newX, maxX));
     newY = Math.max(padding, Math.min(newY, maxY));
 
-    wrapper.style.left = `${newX}px`;
-    wrapper.style.top = `${newY}px`;
+    applyBlossomPosition(newX, newY, false);
   }
 
   function onPointerUp(e) {
@@ -201,25 +204,98 @@ function initDraggableBlossomMenu() {
     document.removeEventListener('pointermove', onPointerMove);
     document.removeEventListener('pointerup', onPointerUp);
 
-    // Save position
-    const rect = wrapper.getBoundingClientRect();
-    localStorage.setItem(STORAGE_KEYS.BLOSSOM_POS, JSON.stringify({ x: rect.left, y: rect.top }));
-
-    // If it was just a click (no significant movement), toggle the blossom menu!
-    if (!hasMoved) {
+    if (hasMoved) {
+      // Snap to nearest screen edge (docking di tepian sisi perangkat)
+      const rect = wrapper.getBoundingClientRect();
+      dockedBlossomPosition = calculateNearestEdge(rect.left, rect.top, triggerSize, padding);
+      applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, true);
+      localStorage.setItem(STORAGE_KEYS.BLOSSOM_POS, JSON.stringify(dockedBlossomPosition));
+    } else {
+      // Single tap: toggle blossom menu
       toggleBlossomMenu(!isBlossomOpen);
     }
   }
 
   trigger.addEventListener('pointerdown', onPointerDown);
+
+  // Auto-adjust when screen orientation changes or window resizes
+  window.addEventListener('resize', () => {
+    dockedBlossomPosition = calculateNearestEdge(dockedBlossomPosition.x, dockedBlossomPosition.y, triggerSize, padding);
+    if (!isBlossomOpen) {
+      applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, false);
+    } else {
+      const safe = getSafeBloomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, triggerSize);
+      applyBlossomPosition(safe.x, safe.y, false);
+    }
+  });
 }
 
-function setDefaultBlossomPosition(wrapper) {
-  // Default position: bottom right floating
-  const defaultRight = 24;
-  const defaultBottom = 30;
-  wrapper.style.left = `${window.innerWidth - 75}px`;
-  wrapper.style.top = `${window.innerHeight - 90}px`;
+function getDefaultBlossomPosition(size = 58, padding = 12) {
+  return {
+    x: window.innerWidth - size - padding,
+    y: window.innerHeight - size - 80
+  };
+}
+
+function calculateNearestEdge(currentX, currentY, size = 58, padding = 12) {
+  const minX = padding;
+  const maxX = window.innerWidth - size - padding;
+  const minY = 65; // Safe margin below header
+  const maxY = window.innerHeight - size - 25; // Safe margin above bottom
+
+  // Distance to left and right edges
+  const distLeft = Math.abs(currentX - minX);
+  const distRight = Math.abs(maxX - currentX);
+
+  // Dock to nearest edge (kiri atau kanan perangkat)
+  const targetX = distLeft <= distRight ? minX : maxX;
+  const targetY = Math.max(minY, Math.min(maxY, currentY));
+
+  return { x: targetX, y: targetY };
+}
+
+function getSafeBloomPosition(currentX, currentY, size = 58) {
+  // Blossom radius 80px + petal radius 23px + safe margin ~12px = 115px clearance
+  const requiredClearance = 115;
+  const triggerRadius = size / 2;
+
+  const minCenter = requiredClearance;
+  const maxCenterX = window.innerWidth - requiredClearance;
+  const maxCenterY = window.innerHeight - requiredClearance;
+
+  let centerX = currentX + triggerRadius;
+  let centerY = currentY + triggerRadius;
+
+  // On narrow screens, center horizontally so petals are never cropped on left or right
+  if (minCenter >= maxCenterX) {
+    centerX = window.innerWidth / 2;
+  } else {
+    centerX = Math.max(minCenter, Math.min(maxCenterX, centerX));
+  }
+
+  // Adjust vertical center so top/bottom petals are never cropped
+  if (minCenter >= maxCenterY) {
+    centerY = window.innerHeight / 2;
+  } else {
+    centerY = Math.max(minCenter, Math.min(maxCenterY, centerY));
+  }
+
+  return {
+    x: Math.round(centerX - triggerRadius),
+    y: Math.round(centerY - triggerRadius)
+  };
+}
+
+function applyBlossomPosition(x, y, animate = false) {
+  const wrapper = document.getElementById('blossomMenuWrapper');
+  if (!wrapper) return;
+  if (animate) {
+    wrapper.style.transition = 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
+  } else {
+    wrapper.style.transition = 'none';
+  }
+  wrapper.style.left = `${x}px`;
+  wrapper.style.top = `${y}px`;
 }
 
 function toggleBlossomMenu(open) {
@@ -229,10 +305,17 @@ function toggleBlossomMenu(open) {
   const backdrop = document.getElementById('blossomBackdrop');
 
   if (isBlossomOpen) {
+    // Saat mekar: bergeser lembut ke koordinat aman agar seluruh menu tidak ter-crop sisi layar
+    const safePos = getSafeBloomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, 58);
+    applyBlossomPosition(safePos.x, safePos.y, true);
+
     wrapper.classList.add('open');
     trigger.classList.add('active');
     backdrop.classList.add('active');
   } else {
+    // Saat menutup: meluncur kembali menempel di tepian posisi docking semula
+    applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, true);
+
     wrapper.classList.remove('open');
     trigger.classList.remove('active');
     backdrop.classList.remove('active');
