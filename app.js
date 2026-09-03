@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initLucide();
   startCountdownTimer();
   renderAllViews();
-  initDraggableBlossomMenu();
+  initBlossomMenu();
   initAutoSync();
 });
 
@@ -118,10 +118,9 @@ function handleLogout() {
 }
 
 // ============================================================================
-// 3. DRAGGABLE BLOSSOM FLOATING RADIAL MENU (Edge Docking & Safe Bloom)
+// 3. BLOSSOM FLOATING RADIAL MENU (Pojok Kanan Bawah & Mekar Sempurna)
 // ============================================================================
 let isBlossomOpen = false;
-let dockedBlossomPosition = { x: 0, y: 0 };
 
 function getAppBounds() {
   const shell = document.getElementById('appShell');
@@ -151,269 +150,62 @@ function getAppBounds() {
   };
 }
 
-function getDefaultBlossomPosition(size = 58, padding = 14) {
-  const bounds = getAppBounds();
-  return {
-    x: Math.round(bounds.right - size - padding),
-    y: Math.round(bounds.bottom - size - 85)
-  };
-}
-
-function calculateNearestEdge(currentX, currentY, size = 58, padding = 14) {
-  const bounds = getAppBounds();
-
-  const minX = bounds.left + padding;
-  const maxX = Math.max(minX, bounds.right - size - padding);
-  const minY = 90;
-  const maxY = Math.max(minY, bounds.bottom - size - 25);
-
-  let x = Number(currentX);
-  let y = Number(currentY);
-
-  if (!Number.isFinite(x)) x = maxX;
-  if (!Number.isFinite(y)) y = maxY;
-
-  const distLeft = Math.abs(x - minX);
-  const distRight = Math.abs(maxX - x);
-
-  const targetX = distLeft <= distRight ? minX : maxX;
-  const targetY = Math.max(minY, Math.min(maxY, y));
-
-  return { x: Math.round(targetX), y: Math.round(targetY) };
-}
-
-function getSafeBloomPosition(size = 58) {
-  const bounds = getAppBounds();
-  const safeCenterX = bounds.left + (bounds.width - size) / 2;
-
-  const minY = 135;
-  const maxY = Math.max(minY, bounds.bottom - size - 135);
-  const safeCenterY = Math.max(minY, Math.min(maxY, dockedBlossomPosition.y));
-
-  return {
-    x: Math.round(safeCenterX),
-    y: Math.round(safeCenterY)
-  };
-}
-
-function applyBlossomPosition(x, y, animate = false) {
-  const wrapper = document.getElementById('blossomMenuWrapper');
-  if (!wrapper) return;
-
-  const bounds = getAppBounds();
-  const validX = Number.isFinite(x) ? x : (bounds.right - 58 - 14);
-  const validY = Number.isFinite(y) ? y : (bounds.bottom - 58 - 85);
-
-  if (animate) {
-    wrapper.style.transition = 'left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
-  } else {
-    wrapper.style.transition = 'none';
-  }
-
-  wrapper.style.bottom = 'auto';
-  wrapper.style.right = 'auto';
-  wrapper.style.left = `${validX}px`;
-  wrapper.style.top = `${validY}px`;
-}
-
-let blossomHasMoved = false;
-
 function handleBlossomClick(e) {
   if (e) {
     e.preventDefault();
     e.stopPropagation();
   }
-  if (blossomHasMoved) {
-    blossomHasMoved = false;
-    return;
-  }
   toggleBlossomMenu();
 }
 
-function initDraggableBlossomMenu() {
+function initBlossomMenu() {
+  const wrapper = document.getElementById('blossomMenuWrapper');
+  if (!wrapper) return;
+
+  // Bersihkan inline koordinat lama agar style.css bottom-right mengontrol sepenuhnya
+  wrapper.style.left = '';
+  wrapper.style.top = '';
+  wrapper.style.bottom = '';
+  wrapper.style.right = '';
+  wrapper.style.transform = 'translate(0px, 0px)';
+
+  // Hapus cache posisi drag lawas
+  try {
+    localStorage.removeItem(STORAGE_KEYS.BLOSSOM_POS);
+  } catch (e) {}
+
+  window.addEventListener('resize', () => {
+    if (isBlossomOpen) {
+      shiftBlossomToCenter();
+    }
+  });
+}
+
+function shiftBlossomToCenter() {
   const wrapper = document.getElementById('blossomMenuWrapper');
   const trigger = document.getElementById('blossomTrigger');
   if (!wrapper || !trigger) return;
 
-  const triggerSize = 58;
-  const padding = 14;
-
   const bounds = getAppBounds();
-  const defaultPos = getDefaultBlossomPosition(triggerSize, padding);
-  let validSaved = null;
 
-  const savedPos = localStorage.getItem(STORAGE_KEYS.BLOSSOM_POS);
-  if (savedPos) {
-    try {
-      const pos = JSON.parse(savedPos);
-      if (pos && typeof pos.x === 'number' && typeof pos.y === 'number' &&
-          Number.isFinite(pos.x) && Number.isFinite(pos.y) &&
-          pos.y >= 70 && pos.y <= (bounds.bottom - 40)) {
-        validSaved = calculateNearestEdge(pos.x, pos.y, triggerSize, padding);
-      }
-    } catch (e) {
-      validSaved = null;
-    }
-  }
+  // Reset transform sementara untuk mengukur titik awal native pojok kanan bawah
+  wrapper.style.transition = 'none';
+  wrapper.style.transform = 'translate(0px, 0px)';
+  const rect = trigger.getBoundingClientRect();
 
-  dockedBlossomPosition = validSaved || defaultPos;
-  applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, false);
+  // Titik tengah frame aplikasi
+  const targetX = bounds.left + bounds.width / 2;
+  const targetY = Math.max(220, bounds.bottom - 220);
 
-  let isDragging = false;
+  const currentX = rect.left + rect.width / 2;
+  const currentY = rect.top + rect.height / 2;
 
-  // 1. TOUCH EVENTS UNTUK SMARTPHONE / TABLET (MENGIKUTI JARI DENGAN SANGAT MULUS)
-  let isTouching = false;
-  let touchStartX = 0, touchStartY = 0;
-  let touchInitLeft = 0, touchInitTop = 0;
+  const shiftX = Math.round(targetX - currentX);
+  const shiftY = Math.round(targetY - currentY);
 
-  trigger.addEventListener('touchstart', (e) => {
-    if (e.touches.length !== 1) return;
-    const t = e.touches[0];
-    isTouching = true;
-    isDragging = false;
-    blossomHasMoved = false;
-
-    touchStartX = t.clientX;
-    touchStartY = t.clientY;
-
-    const rect = wrapper.getBoundingClientRect();
-    touchInitLeft = rect.left;
-    touchInitTop = rect.top;
-
-    wrapper.style.transition = 'none';
-  }, { passive: true });
-
-  trigger.addEventListener('touchmove', (e) => {
-    if (!isTouching || e.touches.length !== 1) return;
-    const t = e.touches[0];
-    const dx = t.clientX - touchStartX;
-    const dy = t.clientY - touchStartY;
-
-    if (!isDragging && Math.hypot(dx, dy) > 6) {
-      isDragging = true;
-      blossomHasMoved = true;
-      if (isBlossomOpen) toggleBlossomMenu(false);
-    }
-
-    if (isDragging) {
-      if (e.cancelable) e.preventDefault(); // Kunci scroll layar ponsel saat menyeret
-
-      const b = getAppBounds();
-      let newX = touchInitLeft + dx;
-      let newY = touchInitTop + dy;
-
-      const minX = b.left + padding;
-      const maxX = Math.max(minX, b.right - triggerSize - padding);
-      const minY = 90;
-      const maxY = Math.max(minY, b.bottom - triggerSize - 25);
-
-      newX = Math.max(minX, Math.min(maxX, newX));
-      newY = Math.max(minY, Math.min(maxY, newY));
-
-      applyBlossomPosition(newX, newY, false);
-    }
-  }, { passive: false });
-
-  trigger.addEventListener('touchend', () => {
-    if (!isTouching) return;
-    isTouching = false;
-
-    if (isDragging) {
-      isDragging = false;
-      const rect = wrapper.getBoundingClientRect();
-      dockedBlossomPosition = calculateNearestEdge(rect.left, rect.top, triggerSize, padding);
-      applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, true);
-      localStorage.setItem(STORAGE_KEYS.BLOSSOM_POS, JSON.stringify(dockedBlossomPosition));
-
-      setTimeout(() => {
-        blossomHasMoved = false;
-      }, 200);
-    }
-  }, { passive: true });
-
-  trigger.addEventListener('touchcancel', () => {
-    isTouching = false;
-    isDragging = false;
-    applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, true);
-    setTimeout(() => { blossomHasMoved = false; }, 200);
-  });
-
-  // 2. MOUSE EVENTS UNTUK PC / DESKTOP (MENGIKUTI KURSOR MOUSE)
-  let isMouseDown = false;
-  let mouseStartX = 0, mouseStartY = 0;
-  let mouseInitLeft = 0, mouseInitTop = 0;
-
-  trigger.addEventListener('mousedown', (e) => {
-    if (e.button !== 0) return;
-    isMouseDown = true;
-    isDragging = false;
-    blossomHasMoved = false;
-
-    mouseStartX = e.clientX;
-    mouseStartY = e.clientY;
-
-    const rect = wrapper.getBoundingClientRect();
-    mouseInitLeft = rect.left;
-    mouseInitTop = rect.top;
-
-    wrapper.style.transition = 'none';
-  });
-
-  window.addEventListener('mousemove', (e) => {
-    if (!isMouseDown) return;
-    const dx = e.clientX - mouseStartX;
-    const dy = e.clientY - mouseStartY;
-
-    if (!isDragging && Math.hypot(dx, dy) > 6) {
-      isDragging = true;
-      blossomHasMoved = true;
-      if (isBlossomOpen) toggleBlossomMenu(false);
-    }
-
-    if (isDragging) {
-      e.preventDefault();
-      const b = getAppBounds();
-      let newX = mouseInitLeft + dx;
-      let newY = mouseInitTop + dy;
-
-      const minX = b.left + padding;
-      const maxX = Math.max(minX, b.right - triggerSize - padding);
-      const minY = 90;
-      const maxY = Math.max(minY, b.bottom - triggerSize - 25);
-
-      newX = Math.max(minX, Math.min(maxX, newX));
-      newY = Math.max(minY, Math.min(maxY, newY));
-
-      applyBlossomPosition(newX, newY, false);
-    }
-  });
-
-  window.addEventListener('mouseup', () => {
-    if (!isMouseDown) return;
-    isMouseDown = false;
-
-    if (isDragging) {
-      isDragging = false;
-      const rect = wrapper.getBoundingClientRect();
-      dockedBlossomPosition = calculateNearestEdge(rect.left, rect.top, triggerSize, padding);
-      applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, true);
-      localStorage.setItem(STORAGE_KEYS.BLOSSOM_POS, JSON.stringify(dockedBlossomPosition));
-
-      setTimeout(() => {
-        blossomHasMoved = false;
-      }, 200);
-    }
-  });
-
-  window.addEventListener('resize', () => {
-    dockedBlossomPosition = calculateNearestEdge(dockedBlossomPosition.x, dockedBlossomPosition.y, triggerSize, padding);
-    if (!isBlossomOpen) {
-      applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, false);
-    } else {
-      const safe = getSafeBloomPosition(triggerSize);
-      applyBlossomPosition(safe.x, safe.y, false);
-    }
-  });
+  void wrapper.offsetWidth; // Trigger browser reflow
+  wrapper.style.transition = 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
+  wrapper.style.transform = `translate(${shiftX}px, ${shiftY}px)`;
 }
 
 function toggleBlossomMenu(open) {
@@ -424,16 +216,16 @@ function toggleBlossomMenu(open) {
   if (!wrapper || !trigger || !backdrop) return;
 
   if (isBlossomOpen) {
-    // Saat mekar: bergeser lembut ke tengah frame aplikasi agar mekar sempurna tanpa ter-crop
-    const safePos = getSafeBloomPosition(58);
-    applyBlossomPosition(safePos.x, safePos.y, true);
+    // Saat mekar: bergeser anggun dari pojok kanan bawah ke tengah frame aplikasi
+    shiftBlossomToCenter();
 
     wrapper.classList.add('open');
     trigger.classList.add('active');
     backdrop.classList.add('active');
   } else {
-    // Saat menutup: meluncur kembali ke posisi docking di tepian kiri atau kanan
-    applyBlossomPosition(dockedBlossomPosition.x, dockedBlossomPosition.y, true);
+    // Saat menutup: meluncur kembali diam di posisi paten di pojok kanan bawah
+    wrapper.style.transition = 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    wrapper.style.transform = 'translate(0px, 0px)';
 
     wrapper.classList.remove('open');
     trigger.classList.remove('active');
