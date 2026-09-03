@@ -79,7 +79,7 @@ body {
   overflow: hidden;
 }
 
-/* Custom Transparent Couple Background Image */
+/* Custom Transparent Couple Background Image (Lebih Jelas & Elegan) */
 .app-bg-image {
   position: fixed;
   inset: 0;
@@ -87,8 +87,8 @@ body {
   background-size: cover;
   background-position: center 25%;
   background-repeat: no-repeat;
-  opacity: 0.32;
-  filter: saturate(1.08) brightness(1.02);
+  opacity: 0.55;
+  filter: saturate(1.15) brightness(1.02);
   pointer-events: none;
   z-index: 0;
 }
@@ -97,7 +97,7 @@ body {
   position: absolute;
   border-radius: 50%;
   filter: blur(85px);
-  opacity: 0.6;
+  opacity: 0.3;
   animation: floatOrb 18s ease-in-out infinite alternate;
 }
 
@@ -125,7 +125,7 @@ body {
   background: radial-gradient(circle, #E1F0E6 0%, #F1F8F3 70%);
   top: 45%;
   left: 20%;
-  opacity: 0.5;
+  opacity: 0.3;
   animation-duration: 16s;
 }
 
@@ -140,9 +140,9 @@ body {
   width: 100%;
   max-width: 440px;
   min-height: 100vh;
-  background: rgba(255, 255, 255, 0.45);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.30);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   position: relative;
   z-index: 1;
   display: flex;
@@ -1939,15 +1939,15 @@ body {
 .blossom-item:hover {
   background: var(--primary-light);
   color: var(--primary);
-  transform: translate(var(--tx), var(--ty)) scale(1.1) !important;
+  transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1.12) !important;
 }
 
 .blossom-item .blossom-tooltip {
   position: absolute;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
-  background: rgba(39, 51, 44, 0.9);
+  background: rgba(39, 51, 44, 0.92);
   backdrop-filter: blur(8px);
   color: #FFF;
   padding: 3px 8px;
@@ -1955,17 +1955,21 @@ body {
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.2s ease;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  z-index: 10;
 }
 
 .blossom-item:hover .blossom-tooltip {
   opacity: 1;
 }
 
-/* When Blossom Menu is Active */
+/* When Blossom Menu is Active (Presisi Simetris Sempurna) */
 .blossom-menu-wrapper.open .blossom-item {
   opacity: 1;
   pointer-events: auto;
-  transform: translate(var(--tx), var(--ty)) scale(1);
+  transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1);
 }
 
 /* Blossom Backdrop Overlay */
