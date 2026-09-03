@@ -1881,10 +1881,9 @@ body {
    ========================================================================== */
 .blossom-menu-wrapper {
   position: fixed;
-  bottom: 30px;
-  right: 14px;
   z-index: 950;
   user-select: none;
+  -webkit-user-select: none;
   touch-action: none;
 }
 
@@ -1893,7 +1892,7 @@ body {
   width: 58px;
   height: 58px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   border: 1.5px solid rgba(255, 255, 255, 0.95);
@@ -1904,12 +1903,20 @@ body {
   justify-content: center;
   cursor: grab;
   position: relative;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .blossom-trigger:active {
   cursor: grabbing;
   transform: scale(0.96);
+}
+
+.blossom-trigger * {
+  pointer-events: none;
 }
 
 .blossom-trigger.active {
@@ -1919,11 +1926,13 @@ body {
 }
 
 /* Icon rotation when open */
-.blossom-trigger i {
+.blossom-trigger i,
+.blossom-trigger svg {
   transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.blossom-trigger.active i {
+.blossom-trigger.active i,
+.blossom-trigger.active svg {
   transform: rotate(135deg);
 }
 
