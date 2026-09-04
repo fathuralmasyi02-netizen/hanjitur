@@ -1597,12 +1597,14 @@ body {
   gap: 4px;
 }
 
-/* VENDOR CATEGORY ACCORDION & CARDS */
-.vendor-cat-group {
+/* VENDOR & TIMELINE CATEGORY ACCORDION & CARDS */
+.vendor-cat-group,
+.timeline-cat-group {
   margin-bottom: 12px;
 }
 
-.vendor-cat-header {
+.vendor-cat-header,
+.timeline-cat-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1614,7 +1616,8 @@ body {
   transition: all 0.2s ease;
 }
 
-.vendor-cat-header:hover {
+.vendor-cat-header:hover,
+.timeline-cat-header:hover {
   background: rgba(255, 255, 255, 0.95);
 }
 
