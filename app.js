@@ -299,6 +299,7 @@ function loadStoredData() {
     }
   }
 
+  normalizeWeddingData();
   updateSyncIndicator(true);
 
   if (weddingData.Master && weddingData.Master.HariH) {
@@ -529,6 +530,7 @@ async function syncFromSpreadsheet(silent = false) {
       if (!weddingData.Files) weddingData.Files = [];
       if (!weddingData.Tamu_Undangan) weddingData.Tamu_Undangan = [];
 
+      normalizeWeddingData();
       saveDataLocally();
 
       // Selalu render ulang seluruh tampilan begitu data dari Spreadsheet selesai dimuat,
@@ -834,6 +836,64 @@ function formatRupiah(amount) {
   return 'Rp ' + num.toLocaleString('id-ID');
 }
 
+function getRundownKegiatan(r) {
+  if (!r) return '';
+  return r.Kegiatan || r.Kagiatan || r.Nama_Kegiatan || r.Acara || r.Judul || '-';
+}
+
+function formatRundownTime(val) {
+  if (!val) return '00:00';
+  const str = String(val).trim();
+  const match = str.match(/(\d{1,2}):(\d{2})/);
+  if (match) {
+    return `${match[1].padStart(2, '0')}:${match[2]}`;
+  }
+  return str;
+}
+
+function getTxDateTime(tx) {
+  if (!tx) return '';
+  return tx.Tanggal_Waktu || tx.Tanggal___Waktu || tx['Tanggal & Waktu'] || tx.Tanggal || '';
+}
+
+function formatTxDateTime(raw) {
+  if (!raw) return '-';
+  const str = String(raw).trim();
+  const match = str.match(/(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{1,2}):(\d{2}))?/);
+  if (match) {
+    const [, y, m, d, hh, mm] = match;
+    const MONTHS_SHORT = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const monthName = MONTHS_SHORT[parseInt(m, 10)] || m;
+    const timePart = hh !== undefined ? ` • ${hh.padStart(2, '0')}:${mm}` : '';
+    return `${parseInt(d, 10)} ${monthName} ${y}${timePart}`;
+  }
+  return str;
+}
+
+function normalizeWeddingData(targetData = null) {
+  const data = targetData || weddingData;
+  if (!data) return;
+  if (Array.isArray(data.Rundown_Hari_H)) {
+    data.Rundown_Hari_H.forEach(r => {
+      const keg = r.Kegiatan || r.Kagiatan || r.Nama_Kegiatan || r.Acara || r.Judul || '';
+      if (keg) {
+        r.Kegiatan = keg;
+        r.Kagiatan = keg;
+      }
+    });
+  }
+  if (Array.isArray(data.Transaksi_Keuangan)) {
+    data.Transaksi_Keuangan.forEach(tx => {
+      const dt = tx.Tanggal_Waktu || tx.Tanggal___Waktu || tx['Tanggal & Waktu'] || tx.Tanggal || '';
+      if (dt) {
+        tx.Tanggal_Waktu = dt;
+        tx.Tanggal___Waktu = dt;
+        tx['Tanggal & Waktu'] = dt;
+      }
+    });
+  }
+}
+
 // ----------------------------------------------------------------------------
 // A. Render Dashboard
 // ----------------------------------------------------------------------------
@@ -928,7 +988,9 @@ function renderDashboard() {
         <div class="tx-details">
           <div class="tx-item-name">${tx.Rincian_Item || tx.Kategori}</div>
           <div class="tx-meta">
-            <span>${tx.Dompet}</span> &bull; <span>${tx.Tanggal_Waktu || '-'}</span>
+            <span style="font-weight: 600; color: var(--primary-dark);">${tx.Dompet || 'Kas'}</span>
+            <span style="color: var(--text-muted);">&bull;</span>
+            <span style="color: var(--text-muted); font-size: 11px;">${formatTxDateTime(getTxDateTime(tx))}</span>
           </div>
         </div>
         <div class="tx-amount-col">
@@ -944,7 +1006,7 @@ function renderDashboard() {
 // ----------------------------------------------------------------------------
 // B. Render Keuangan & Anggaran
 // ----------------------------------------------------------------------------
-let isWalletAccordionOpen = true;
+let isWalletAccordionOpen = false;
 let currentTxTypeFilter = 'all';
 let currentTxDateFilter = '';
 let currentTxSearchQuery = '';
@@ -1127,14 +1189,15 @@ function renderTransactionsList() {
   }
 
   if (currentTxDateFilter) {
-    filtered = filtered.filter(tx => (tx.Tanggal_Waktu || '').startsWith(currentTxDateFilter));
+    filtered = filtered.filter(tx => String(getTxDateTime(tx)).startsWith(currentTxDateFilter));
   }
 
   if (currentTxSearchQuery) {
     filtered = filtered.filter(tx => 
-      (tx.Rincian_Item || '').toLowerCase().includes(currentTxSearchQuery) ||
-      (tx.Kategori || '').toLowerCase().includes(currentTxSearchQuery) ||
-      (tx.Dompet || '').toLowerCase().includes(currentTxSearchQuery)
+      String(tx.Rincian_Item || '').toLowerCase().includes(currentTxSearchQuery) ||
+      String(tx.Kategori || '').toLowerCase().includes(currentTxSearchQuery) ||
+      String(tx.Dompet || '').toLowerCase().includes(currentTxSearchQuery) ||
+      String(getTxDateTime(tx)).toLowerCase().includes(currentTxSearchQuery)
     );
   }
 
@@ -1147,6 +1210,7 @@ function renderTransactionsList() {
     const isKeluar = (tx.Jenis || 'Keluar') === 'Keluar';
     const card = document.createElement('div');
     card.className = 'glass-card-sm tx-card';
+    const dtStr = formatTxDateTime(getTxDateTime(tx));
     card.innerHTML = `
       <div class="tx-icon-col ${isKeluar ? 'keluar' : 'masuk'}">
         <i data-lucide="${isKeluar ? 'arrow-up-right' : 'arrow-down-left'}" style="width: 18px; height: 18px;"></i>
@@ -1154,7 +1218,9 @@ function renderTransactionsList() {
       <div class="tx-details">
         <div class="tx-item-name">${tx.Rincian_Item || tx.Kategori}</div>
         <div class="tx-meta">
-          <span>${tx.Dompet}</span> &bull; <span>${tx.Tanggal_Waktu || '-'}</span>
+          <span style="font-weight: 600; color: var(--primary-dark);">${tx.Dompet || 'Kas'}</span>
+          <span style="color: var(--text-muted);">&bull;</span>
+          <span style="color: var(--text-muted); font-size: 11px;">${dtStr}</span>
         </div>
       </div>
       <div class="tx-amount-col">
@@ -1177,7 +1243,7 @@ function filterAnggaranSearch() {
 
 function toggleBudgetCategory(catName) {
   if (budgetCategoryState[catName] === undefined) {
-    budgetCategoryState[catName] = true;
+    budgetCategoryState[catName] = false;
   }
   budgetCategoryState[catName] = !budgetCategoryState[catName];
   const catKey = catName.replace(/[\s&/]/g, '_');
@@ -1285,11 +1351,11 @@ function renderKeuangan() {
       Object.keys(grouped).forEach(cat => {
         const items = grouped[cat];
         const catKey = cat.replace(/[\s&/]/g, '_');
-        // Default terbuka (true) agar pos anggaran langsung nampak seketika
+        // Default tertutup (false)
         if (budgetCategoryState[cat] === undefined) {
-          budgetCategoryState[cat] = true;
+          budgetCategoryState[cat] = false;
         }
-        const isOpen = currentAnggaranSearch ? true : (budgetCategoryState[cat] !== false);
+        const isOpen = currentAnggaranSearch ? true : (budgetCategoryState[cat] === true);
 
         const catSubtotalRiil = items.reduce((a, b) => a + b.riil, 0);
         const catSubtotalBayar = items.reduce((a, b) => a + b.bayar, 0);
@@ -1559,6 +1625,23 @@ function populateTimelineCategories(selectId, selectedVal) {
   }
 }
 
+let timelineCategoryState = {};
+
+function toggleTimelineCategory(cat) {
+  if (timelineCategoryState[cat] === undefined) {
+    timelineCategoryState[cat] = false;
+  }
+  timelineCategoryState[cat] = !timelineCategoryState[cat];
+  const catKey = cat.replace(/[\s&/]/g, '_');
+  const body = document.getElementById(`timeline-cat-body-${catKey}`);
+  const arrow = document.getElementById(`timeline-cat-arrow-${catKey}`);
+  if (body && arrow) {
+    const isOpen = timelineCategoryState[cat];
+    body.style.display = isOpen ? 'flex' : 'none';
+    arrow.classList.toggle('rotated', isOpen);
+  }
+}
+
 function renderTimeline() {
   const timelineListEl = document.getElementById('timelineList');
   if (!timelineListEl) return;
@@ -1578,20 +1661,20 @@ function renderTimeline() {
   });
 
   if (currentTimelineFilter === 'pending') {
-    items = items.filter(t => (t.Status || '').toLowerCase() !== 'selesai');
+    items = items.filter(t => String(t.Status || '').toLowerCase() !== 'selesai');
   } else if (currentTimelineFilter === 'done') {
-    items = items.filter(t => (t.Status || '').toLowerCase() === 'selesai');
+    items = items.filter(t => String(t.Status || '').toLowerCase() === 'selesai');
   }
 
   if (currentTimelineDateFilter) {
-    items = items.filter(t => (t.Deadline || '') === currentTimelineDateFilter);
+    items = items.filter(t => String(t.Deadline || '') === currentTimelineDateFilter);
   }
 
   if (currentTimelineSearch) {
     items = items.filter(t => 
-      (t.Nama_Item || '').toLowerCase().includes(currentTimelineSearch) ||
-      (t.Kategori || '').toLowerCase().includes(currentTimelineSearch) ||
-      (t.Catatan || '').toLowerCase().includes(currentTimelineSearch)
+      String(t.Nama_Item || '').toLowerCase().includes(currentTimelineSearch) ||
+      String(t.Kategori || '').toLowerCase().includes(currentTimelineSearch) ||
+      String(t.Catatan || '').toLowerCase().includes(currentTimelineSearch)
     );
   }
 
@@ -1600,32 +1683,84 @@ function renderTimeline() {
     return;
   }
 
-  items.forEach(item => {
-    const isDone = (item.Status || '').toLowerCase() === 'selesai';
-    const card = document.createElement('div');
-    card.className = `glass-card timeline-card ${isDone ? 'done' : 'pending'}`;
-    card.onclick = () => openTimelineDetailModal(item.ID_Timeline);
-    card.innerHTML = `
-      <div class="timeline-row-top">
-        <span class="timeline-title" style="font-weight: 700; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">${item.Nama_Item}</span>
-        <div class="timeline-deadline-badge" style="flex-shrink: 0;">
-          <i data-lucide="calendar" style="width: 11px; height: 11px;"></i>
-          <span>${item.Deadline || '-'}</span>
+  // Group by category
+  const grouped = {};
+  items.forEach(t => {
+    const cat = t.Kategori || 'Persiapan';
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(t);
+  });
+
+  // Sort categories by Master Kategori order
+  const masterCats = (weddingData.Master && Array.isArray(weddingData.Master.KategoriMaster) && weddingData.Master.KategoriMaster.length > 0)
+    ? weddingData.Master.KategoriMaster
+    : ['H-6 Bulan', 'H-3 Bulan', 'H-1 Bulan', 'H-1 Minggu', 'Hari H', 'Pasca Acara'];
+
+  const sortedCats = Object.keys(grouped).sort((a, b) => {
+    let idxA = masterCats.indexOf(a);
+    let idxB = masterCats.indexOf(b);
+    if (idxA === -1) idxA = 999;
+    if (idxB === -1) idxB = 999;
+    return idxA - idxB;
+  });
+
+  const isFiltering = !!currentTimelineSearch || !!currentTimelineDateFilter || currentTimelineFilter !== 'all';
+
+  sortedCats.forEach(cat => {
+    const catItems = grouped[cat];
+    const catKey = cat.replace(/[\s&/]/g, '_');
+    const doneCount = catItems.filter(t => String(t.Status || '').toLowerCase() === 'selesai').length;
+
+    // Default tertutup (false)
+    if (timelineCategoryState[cat] === undefined) {
+      timelineCategoryState[cat] = false;
+    }
+    const isOpen = isFiltering ? true : (timelineCategoryState[cat] === true);
+
+    const groupDiv = document.createElement('div');
+    groupDiv.className = 'timeline-cat-group';
+    groupDiv.innerHTML = `
+      <div class="timeline-cat-header" onclick="toggleTimelineCategory('${cat}')">
+        <div class="vendor-cat-title-wrap">
+          <span class="vendor-cat-name">${cat}</span>
+          <span class="vendor-cat-count">${catItems.length} Agenda</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="budget-cat-pct-badge">${doneCount}/${catItems.length} Selesai</span>
+          <div class="accordion-arrow ${isOpen ? 'rotated' : ''}" id="timeline-cat-arrow-${catKey}">
+            <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
+          </div>
         </div>
       </div>
-      <div class="timeline-row-bottom">
-        <span class="timeline-cat-pill">${item.Kategori || 'Persiapan'}</span>
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <span class="timeline-status-pill ${isDone ? 'done' : 'pending'}">${isDone ? 'Selesai' : 'Belum Selesai'}</span>
-          <button type="button" class="btn-toggle-status ${isDone ? 'done' : ''}" 
-            onclick="event.stopPropagation(); toggleTimelineStatus('${item.ID_Timeline}')" 
-            title="${isDone ? 'Tandai Belum Selesai' : 'Tandai Selesai'}">
-            <i data-lucide="${isDone ? 'check' : 'circle'}" style="width: 14px; height: 14px;"></i>
-          </button>
-        </div>
+      <div class="timeline-cat-items-list" id="timeline-cat-body-${catKey}" style="display: ${isOpen ? 'flex' : 'none'}; flex-direction: column; gap: 8px; margin-top: 8px;">
+        ${catItems.map(item => {
+          const isDone = String(item.Status || '').toLowerCase() === 'selesai';
+          return `
+            <div class="glass-card timeline-card ${isDone ? 'done' : 'pending'}" onclick="openTimelineDetailModal('${item.ID_Timeline}')">
+              <div class="timeline-row-top">
+                <span class="timeline-title" style="font-weight: 700; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">${item.Nama_Item}</span>
+                <div class="timeline-deadline-badge" style="flex-shrink: 0;">
+                  <i data-lucide="calendar" style="width: 11px; height: 11px;"></i>
+                  <span>${item.Deadline || '-'}</span>
+                </div>
+              </div>
+              <div class="timeline-row-bottom">
+                <span class="timeline-cat-pill">${item.Kategori || 'Persiapan'}</span>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="timeline-status-pill ${isDone ? 'done' : 'pending'}">${isDone ? 'Selesai' : 'Belum Selesai'}</span>
+                  <button type="button" class="btn-toggle-status ${isDone ? 'done' : ''}" 
+                    onclick="event.stopPropagation(); toggleTimelineStatus('${item.ID_Timeline}')" 
+                    title="${isDone ? 'Tandai Belum Selesai' : 'Tandai Selesai'}">
+                    <i data-lucide="${isDone ? 'check' : 'circle'}" style="width: 14px; height: 14px;"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
       </div>
     `;
-    timelineListEl.appendChild(card);
+    timelineListEl.appendChild(groupDiv);
   });
   initLucide();
 }
@@ -1766,10 +1901,10 @@ function renderRundown() {
   let filteredRundowns = rundowns.slice();
   if (currentRundownSearch) {
     filteredRundowns = filteredRundowns.filter(r => 
-      (r.Kegiatan || '').toLowerCase().includes(currentRundownSearch) ||
-      (r.PIC || '').toLowerCase().includes(currentRundownSearch) ||
-      (r.Lokasi || '').toLowerCase().includes(currentRundownSearch) ||
-      (r.Catatan || '').toLowerCase().includes(currentRundownSearch)
+      String(getRundownKegiatan(r)).toLowerCase().includes(currentRundownSearch) ||
+      String(r.PIC || '').toLowerCase().includes(currentRundownSearch) ||
+      String(r.Lokasi || '').toLowerCase().includes(currentRundownSearch) ||
+      String(r.Catatan || '').toLowerCase().includes(currentRundownSearch)
     );
   }
 
@@ -1778,20 +1913,25 @@ function renderRundown() {
     return;
   }
 
-  // Sort by start time if possible
-  const sortedRundowns = filteredRundowns.sort((a, b) => (a.Waktu_Mulai || '').localeCompare(b.Waktu_Mulai || ''));
+  // Sort by start time
+  const sortedRundowns = filteredRundowns.sort((a, b) => 
+    formatRundownTime(a.Waktu_Mulai).localeCompare(formatRundownTime(b.Waktu_Mulai))
+  );
 
   sortedRundowns.forEach(r => {
     const card = document.createElement('div');
     card.className = 'glass-card rundown-card';
     card.style.cursor = 'pointer';
     card.onclick = () => openRundownDetailModal(r.ID_Rundown);
+    const startStr = formatRundownTime(r.Waktu_Mulai);
+    const endStr = formatRundownTime(r.Waktu_Selesai);
+    const kegiatanTitle = getRundownKegiatan(r);
     card.innerHTML = `
       <div class="rundown-time-badge">
         <i data-lucide="clock" style="width: 12px; height: 12px;"></i>
-        <span>${r.Waktu_Mulai || '00:00'} - ${r.Waktu_Selesai || '00:00'} WIB</span>
+        <span>${startStr} - ${endStr} WIB</span>
       </div>
-      <div class="rundown-activity">${r.Kegiatan}</div>
+      <div class="rundown-activity">${kegiatanTitle}</div>
       <div class="rundown-meta-row">
         <div class="rundown-meta-item">
           <i data-lucide="user" style="width: 13px; height: 13px; color: var(--primary);"></i>
@@ -1820,12 +1960,14 @@ function openRundownDetailModal(id) {
   const item = (weddingData.Rundown_Hari_H || []).find(r => r.ID_Rundown === id);
   if (!item) return;
 
-  const timeStr = `${item.Waktu_Mulai || '00:00'} - ${item.Waktu_Selesai || '00:00'} WIB`;
+  const startStr = formatRundownTime(item.Waktu_Mulai);
+  const endStr = formatRundownTime(item.Waktu_Selesai);
+  const timeStr = `${startStr} - ${endStr} WIB`;
   const timeEl = document.getElementById('rdDetailTime');
   if (timeEl) timeEl.innerText = timeStr;
 
   const titleEl = document.getElementById('rdDetailKegiatan');
-  if (titleEl) titleEl.innerText = item.Kegiatan;
+  if (titleEl) titleEl.innerText = getRundownKegiatan(item);
 
   const picEl = document.getElementById('rdDetailPIC');
   if (picEl) picEl.innerText = item.PIC || '-';
@@ -1844,9 +1986,9 @@ function openEditRundownModal() {
   const item = (weddingData.Rundown_Hari_H || []).find(r => r.ID_Rundown === selectedRundownId);
   if (!item) return;
 
-  document.getElementById('editRdStart').value = item.Waktu_Mulai || '';
-  document.getElementById('editRdEnd').value = item.Waktu_Selesai || '';
-  document.getElementById('editRdKegiatan').value = item.Kegiatan || '';
+  document.getElementById('editRdStart').value = formatRundownTime(item.Waktu_Mulai);
+  document.getElementById('editRdEnd').value = formatRundownTime(item.Waktu_Selesai);
+  document.getElementById('editRdKegiatan').value = getRundownKegiatan(item);
   document.getElementById('editRdPIC').value = item.PIC || '';
   document.getElementById('editRdLokasi').value = item.Lokasi || '';
   document.getElementById('editRdCatatan').value = item.Catatan || '';
@@ -1876,6 +2018,7 @@ function submitEditRundown(e = null) {
   item.Waktu_Mulai = mulai;
   item.Waktu_Selesai = selesai;
   item.Kegiatan = kegiatan;
+  item.Kagiatan = kegiatan; // Kompatibilitas jika di sheet tertulis Kagiatan
   item.PIC = pic;
   item.Lokasi = lokasi;
   item.Catatan = catatan;
@@ -1895,7 +2038,7 @@ function deleteRundownItem(e = null) {
   const item = (weddingData.Rundown_Hari_H || []).find(r => r.ID_Rundown === selectedRundownId);
   if (!item) return;
 
-  if (confirm(`Apakah Anda yakin ingin menghapus susunan acara "${item.Kegiatan}"?`)) {
+  if (confirm(`Apakah Anda yakin ingin menghapus susunan acara "${getRundownKegiatan(item)}"?`)) {
     const btn = getActionButton(e, 'modalRundownDetail', 'button.danger');
     const orig = setButtonLoading(btn, 'Menghapus...');
     if (btn) btn.classList.add('btn-danger-loading');
@@ -1941,7 +2084,7 @@ function filterVendorSearch() {
 
 function toggleVendorCategory(cat) {
   if (vendorCategoryState[cat] === undefined) {
-    vendorCategoryState[cat] = true;
+    vendorCategoryState[cat] = false;
   }
   vendorCategoryState[cat] = !vendorCategoryState[cat];
   const catKey = cat.replace(/[\s&/]/g, '_');
@@ -2037,11 +2180,11 @@ function renderVendor() {
     const items = grouped[cat];
     const catKey = cat.replace(/[\s&/]/g, '_');
     
-    // Default terbuka (true) agar seluruh vendor langsung nampak
+    // Default tertutup (false)
     if (vendorCategoryState[cat] === undefined) {
-      vendorCategoryState[cat] = true;
+      vendorCategoryState[cat] = false;
     }
-    const isOpen = isFiltering ? true : (vendorCategoryState[cat] !== false);
+    const isOpen = isFiltering ? true : (vendorCategoryState[cat] === true);
 
     const groupDiv = document.createElement('div');
     groupDiv.className = 'vendor-cat-group';
@@ -2654,7 +2797,7 @@ let currentFilesSearch = '';
 
 function toggleKnowledgeCategory(cat) {
   if (knowledgeCategoryState[cat] === undefined) {
-    knowledgeCategoryState[cat] = true;
+    knowledgeCategoryState[cat] = false;
   }
   knowledgeCategoryState[cat] = !knowledgeCategoryState[cat];
   const catKey = cat.replace(/[\s&/]/g, '_');
@@ -2716,11 +2859,11 @@ function renderKnowledgeAndFiles() {
         const items = grouped[cat];
         const catKey = cat.replace(/[\s&/]/g, '_');
 
-        // Default terbuka (true) agar target progres langsung nampak seketika
+        // Default tertutup (false)
         if (knowledgeCategoryState[cat] === undefined) {
-          knowledgeCategoryState[cat] = true;
+          knowledgeCategoryState[cat] = false;
         }
-        const isOpen = currentKnowledgeSearch ? true : (knowledgeCategoryState[cat] !== false);
+        const isOpen = currentKnowledgeSearch ? true : (knowledgeCategoryState[cat] === true);
 
         const groupDiv = document.createElement('div');
         groupDiv.className = 'knowledge-cat-group';
@@ -3795,6 +3938,8 @@ function submitTransaksi(e = null) {
   const newTx = {
     ID_Transaksi: generateUniqueId('TX'),
     Tanggal_Waktu: dateStr,
+    Tanggal___Waktu: dateStr,
+    'Tanggal & Waktu': dateStr,
     Dompet: walletName,
     Kategori: category,
     Rincian_Item: itemName,
@@ -3949,6 +4094,7 @@ function submitRundown(e = null) {
     Waktu_Mulai: start,
     Waktu_Selesai: end,
     Kegiatan: kegiatan,
+    Kagiatan: kegiatan, // Kompatibilitas jika di sheet tertulis Kagiatan
     PIC: pic,
     Lokasi: lokasi,
     Catatan: catatan
