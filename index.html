@@ -22,7 +22,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
   
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=3.0">
+  <link rel="stylesheet" href="style.css?v=3.1">
   
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -308,11 +308,17 @@
             </div>
 
             <!-- Rincian Pos Anggaran Header with Tambah Pos Anggaran Button -->
-            <div class="section-header" style="margin-bottom: 10px;">
+            <div class="section-header" style="margin-bottom: 8px;">
               <h3 class="section-title">Rincian Pos Anggaran</h3>
               <button class="btn-pill-action" onclick="openModal('modalAnggaran')">
                 <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Tambah Pos
               </button>
+            </div>
+
+            <!-- Searchbar Pos Anggaran -->
+            <div class="tx-search-box" style="margin-bottom: 12px;">
+              <i data-lucide="search" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+              <input type="text" id="anggaranSearchInput" placeholder="Cari pos anggaran atau kategori..." oninput="filterAnggaranSearch()">
             </div>
           </div>
 
@@ -385,6 +391,12 @@
           <button class="btn-pill-action" onclick="openModal('modalRundown')">
             <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Tambah Rundown
           </button>
+        </div>
+
+        <!-- Searchbar Rundown Hari H -->
+        <div class="tx-search-box" style="margin-bottom: 12px;">
+          <i data-lucide="search" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+          <input type="text" id="rdSearchInput" placeholder="Cari kegiatan, PIC, atau lokasi..." oninput="filterRundownSearch()">
         </div>
 
         <div class="card-list" id="rundownList">
@@ -2151,6 +2163,6 @@
   </div>
 
   <!-- JavaScript Application File -->
-  <script src="app.js?v=3.0"></script>
+  <script src="app.js?v=3.1"></script>
 </body>
 </html>
