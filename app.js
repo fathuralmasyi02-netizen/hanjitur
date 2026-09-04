@@ -249,8 +249,13 @@ function toggleBlossomMenu(open) {
 }
 
 function onBlossomNavigate(tabName) {
-  switchTab(tabName);
-  toggleBlossomMenu(false);
+  try {
+    switchTab(tabName);
+  } catch (err) {
+    console.error('Error in onBlossomNavigate:', err);
+  } finally {
+    toggleBlossomMenu(false);
+  }
 }
 
 // ============================================================================
@@ -411,11 +416,12 @@ async function processSyncQueue() {
   while (queue.length > 0) {
     const item = queue[0];
     try {
+      const payload = JSON.stringify({ action: item.action, sheet: item.sheet, data: item.data });
       await fetch(SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: item.action, sheet: item.sheet, data: item.data })
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: payload
       });
       // Sukses terkirim: hapus item terdepan dari antrean
       queue.shift();
@@ -812,15 +818,15 @@ function startCountdownTimer() {
 // 6. VIEW RENDERING ENGINE
 // ============================================================================
 function renderAllViews() {
-  renderDashboard();
-  renderKeuangan();
-  renderTimeline();
-  renderRundown();
-  renderVendor();
-  renderTamu();
-  renderKnowledgeAndFiles();
-  populateWalletSelectOptions();
-  initLucide();
+  try { renderDashboard(); } catch (e) { console.error('Error rendering dashboard:', e); }
+  try { renderKeuangan(); } catch (e) { console.error('Error rendering keuangan:', e); }
+  try { renderTimeline(); } catch (e) { console.error('Error rendering timeline:', e); }
+  try { renderRundown(); } catch (e) { console.error('Error rendering rundown:', e); }
+  try { renderVendor(); } catch (e) { console.error('Error rendering vendor:', e); }
+  try { renderTamu(); } catch (e) { console.error('Error rendering tamu:', e); }
+  try { renderKnowledgeAndFiles(); } catch (e) { console.error('Error rendering knowledge/files:', e); }
+  try { populateWalletSelectOptions(); } catch (e) { console.error('Error populating wallets:', e); }
+  try { initLucide(); } catch (e) {}
 }
 
 function formatRupiah(amount) {
@@ -848,14 +854,14 @@ function renderDashboard() {
 
   // Tamu & Total Pax
   const tamuList = weddingData.Tamu_Undangan || [];
-  const tamuHadir = tamuList.filter(t => (t.Status || '').toLowerCase().includes('hadir')).length;
+  const tamuHadir = tamuList.filter(t => String(t.Status || '').toLowerCase().includes('hadir')).length;
   const totalPax = tamuList.reduce((acc, curr) => acc + (Number(curr.Jumlah_Pax) || 1), 0);
   document.getElementById('dashTamuHadir').innerText = tamuHadir;
   document.getElementById('dashTotalTamu').innerText = `${tamuList.length} Tamu • ${totalPax} Pax`;
 
   // Timeline
   const timelineList = weddingData.Timeline || [];
-  const doneTimeline = timelineList.filter(t => (t.Status || '').toLowerCase() === 'selesai').length;
+  const doneTimeline = timelineList.filter(t => String(t.Status || '').toLowerCase() === 'selesai').length;
   const pctTimeline = timelineList.length > 0 ? Math.round((doneTimeline / timelineList.length) * 100) : 0;
   document.getElementById('dashTimelineDone').innerText = `${pctTimeline}%`;
   document.getElementById('dashTimelineCount').innerText = `${doneTimeline} dari ${timelineList.length} Selesai`;
@@ -2051,7 +2057,7 @@ function renderVendor() {
       </div>
       <div class="vendor-cat-items-list" id="vendor-cat-body-${catKey}" style="display: ${isOpen ? 'flex' : 'none'};">
         ${items.map(v => {
-          let cleanPhone = (v.Nomor || '').replace(/[^0-9]/g, '');
+          let cleanPhone = String(v.Nomor || '').replace(/[^0-9]/g, '');
           if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.slice(1);
 
           const totalBiaya = Number(v.Total_Biaya) || 0;
@@ -2126,7 +2132,7 @@ function openVendorDetailModal(id) {
 
   // Links
   const waBtn = document.getElementById('vdDetailWA');
-  let cleanPhone = (item.Nomor || '').replace(/[^0-9]/g, '');
+  let cleanPhone = String(item.Nomor || '').replace(/[^0-9]/g, '');
   if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.slice(1);
   if (cleanPhone) {
     waBtn.href = `https://wa.me/${cleanPhone}`;
@@ -2350,7 +2356,7 @@ function renderTamuPaxNamesInput(paxCount, containerId, existingNames = '') {
 }
 
 function getTamuStatusBadgeStyle(status) {
-  const s = (status || '').toLowerCase();
+  const s = String(status || '').toLowerCase();
   if (s.includes('hadir') && !s.includes('tidak')) {
     return 'background: var(--success-bg); color: var(--success);';
   } else if (s.includes('tidak')) {
@@ -2379,7 +2385,7 @@ function renderTamu() {
     const pax = Number(g.Jumlah_Pax) || 1;
     totalPax += pax;
 
-    const st = (g.Status || '').toLowerCase();
+    const st = String(g.Status || '').toLowerCase();
     if (st.includes('hadir') && !st.includes('tidak')) hadir++;
     else if (st.includes('tidak')) batal++;
     else pending++;
@@ -2405,9 +2411,9 @@ function renderTamu() {
   if (currentTamuSearch) {
     filteredGuests = filteredGuests.filter(g => {
       const q = currentTamuSearch;
-      const n = (g.Nama_Tamu || '').toLowerCase();
-      const k = (g.Kategori_Tamu || '').toLowerCase();
-      const dn = (g.Daftar_Nama || '').toLowerCase();
+      const n = String(g.Nama_Tamu || '').toLowerCase();
+      const k = String(g.Kategori_Tamu || '').toLowerCase();
+      const dn = String(g.Daftar_Nama || '').toLowerCase();
       return n.includes(q) || k.includes(q) || dn.includes(q);
     });
   }
@@ -2418,7 +2424,7 @@ function renderTamu() {
   }
 
   filteredGuests.forEach(g => {
-    let cleanPhone = (g.Nomor_WhatsApp || '').replace(/[^0-9]/g, '');
+    let cleanPhone = String(g.Nomor_WhatsApp || '').replace(/[^0-9]/g, '');
     if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.slice(1);
 
     const weddingDateText = document.getElementById('weddingDateDisplay') ? document.getElementById('weddingDateDisplay').innerText : '24 Desember 2026';
@@ -2491,7 +2497,7 @@ function openTamuDetailModal(id) {
   // WA info
   const waDisplay = document.getElementById('tmDetailWA');
   const waBtn = document.getElementById('tmDetailWABtn');
-  let cleanPhone = (g.Nomor_WhatsApp || '').replace(/[^0-9]/g, '');
+  let cleanPhone = String(g.Nomor_WhatsApp || '').replace(/[^0-9]/g, '');
   if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.slice(1);
 
   if (g.Nomor_WhatsApp) {
