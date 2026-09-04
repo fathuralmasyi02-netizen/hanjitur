@@ -400,6 +400,55 @@ body {
   background: #FFF;
 }
 
+/* Header Reload Button with Spinning Animation */
+.header-reload-btn {
+  color: var(--primary);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.header-reload-btn:hover {
+  background: #FFF;
+  color: var(--primary-dark);
+}
+
+.header-reload-btn:active {
+  transform: scale(0.92);
+}
+
+.header-reload-btn.is-syncing i,
+.header-reload-btn.is-syncing svg {
+  animation: spinReload 0.8s linear infinite;
+  color: var(--primary);
+}
+
+@keyframes spinReload {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Button Processing & Loading Feedback States across All Menus */
+.btn-loading {
+  pointer-events: none !important;
+  opacity: 0.78 !important;
+  cursor: not-allowed !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+}
+
+.btn-loading .spin-loader,
+.spin-loader {
+  animation: spinReload 0.8s linear infinite;
+}
+
+.btn-danger-loading {
+  pointer-events: none !important;
+  opacity: 0.78 !important;
+  background: #DC2626 !important;
+  color: #FFF !important;
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;
