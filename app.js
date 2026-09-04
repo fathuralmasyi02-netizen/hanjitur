@@ -15,8 +15,16 @@ const STORAGE_KEYS = {
   IS_LOGGED_IN: 'hanjitur_logged_in',
   SCRIPT_URL: 'hanjitur_appscript_url',
   DATA_STORE: 'hanjitur_wedding_data',
-  BLOSSOM_POS: 'hanjitur_blossom_pos'
+  BLOSSOM_POS: 'hanjitur_blossom_pos',
+  SYNC_QUEUE: 'hanjitur_sync_queue'
 };
+
+// Pembangkit ID Unik Bebas Tabrakan Antar Banyak Perangkat
+function generateUniqueId(prefix) {
+  const ts = Date.now().toString(36);
+  const rand = Math.random().toString(36).substring(2, 6);
+  return `${prefix}-${ts}-${rand}`;
+}
 
 // Google Apps Script Live Web App URL
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxK3dYY4Xzxoc5b9FRX6SYUOi15_KtPbSx3HK8h6tYOEWWX-Kde2uRAMg8hYPlBIAGF9g/exec';
@@ -78,18 +86,24 @@ function checkAuth() {
   }
 }
 
-function handleLogin() {
+function handleLogin(e = null) {
+  const btn = getFormSubmitButton(e, 'loginScreen') || document.querySelector('#loginForm button[type="submit"]');
+  const orig = setButtonLoading(btn, 'Memverifikasi...');
+
   const emailInput = document.getElementById('loginEmail').value.trim();
   const passInput = document.getElementById('loginPassword').value.trim();
 
-  if (emailInput === AUTH_CONFIG.EMAIL && passInput === AUTH_CONFIG.PASS) {
-    localStorage.setItem(STORAGE_KEYS.IS_LOGGED_IN, 'true');
-    document.getElementById('loginScreen').classList.add('hidden');
-    showToast('Selamat Datang di Hanjitur Organizer! 🌿', 'success');
-    renderAllViews();
-  } else {
-    showToast('Email atau password salah! Silakan coba lagi.', 'error');
-  }
+  setTimeout(() => {
+    if (emailInput === AUTH_CONFIG.EMAIL && passInput === AUTH_CONFIG.PASS) {
+      localStorage.setItem(STORAGE_KEYS.IS_LOGGED_IN, 'true');
+      document.getElementById('loginScreen').classList.add('hidden');
+      showToast('Selamat Datang di Hanjitur Organizer! 🌿', 'success');
+      renderAllViews();
+    } else {
+      showToast('Email atau password salah! Silakan coba lagi.', 'error');
+    }
+    resetButtonLoading(btn, orig);
+  }, 350);
 }
 
 
@@ -296,20 +310,139 @@ function saveDataLocally() {
 }
 
 function updateSyncIndicator(isConnected) {
-  const statusPill = document.getElementById('syncStatusPill');
-  const statusText = document.getElementById('syncStatusText');
-  if (!statusPill) return;
+  const reloadBtn = document.getElementById('syncReloadBtn');
+  if (!reloadBtn) return;
   if (isConnected) {
-    statusPill.style.background = 'rgba(58, 150, 105, 0.15)';
-    statusPill.style.color = '#3A9669';
-    statusPill.style.borderColor = 'rgba(58, 150, 105, 0.3)';
-    if (statusText) statusText.innerText = 'Live Sheet';
+    reloadBtn.title = 'Segarkan Data dari Spreadsheet (Terhubung)';
+    reloadBtn.style.color = 'var(--primary)';
   } else {
-    statusPill.style.background = 'rgba(82, 128, 105, 0.12)';
-    statusPill.style.color = '#528069';
-    statusPill.style.borderColor = 'rgba(82, 128, 105, 0.25)';
-    if (statusText) statusText.innerText = 'Demo Mode';
+    reloadBtn.title = 'Koneksi Terputus (Mode Offline)';
+    reloadBtn.style.color = '#E11D48';
   }
+}
+
+// ----------------------------------------------------------------------------
+// HELPER FEEDBACK STATUS TOMBOL (LOADING, DISABLE, PROCESSED)
+// ----------------------------------------------------------------------------
+function getFormSubmitButton(e, modalId = null) {
+  if (e) {
+    if (e.submitter) return e.submitter;
+    if (e.target && e.target.querySelector) {
+      const b = e.target.querySelector('button[type="submit"]');
+      if (b) return b;
+    }
+    if (e.currentTarget && e.currentTarget.querySelector) {
+      const b = e.currentTarget.querySelector('button[type="submit"]');
+      if (b) return b;
+    }
+    if (e.target && e.target.tagName === 'BUTTON') return e.target;
+  }
+  if (modalId) {
+    const m = document.getElementById(modalId);
+    if (m) {
+      const b = m.querySelector('button[type="submit"]') || m.querySelector('.btn-primary');
+      if (b) return b;
+    }
+  }
+  return null;
+}
+
+function getActionButton(e, modalId = null, selector = 'button.danger') {
+  if (e) {
+    const btn = (e.target && e.target.closest) ? e.target.closest('button') : null;
+    if (btn) return btn;
+  }
+  if (modalId) {
+    const m = document.getElementById(modalId);
+    if (m) {
+      const b = m.querySelector(selector);
+      if (b) return b;
+    }
+  }
+  return null;
+}
+
+function setButtonLoading(btn, loadingText = 'Menyimpan...') {
+  if (!btn) return null;
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.classList.add('btn-loading');
+  btn.innerHTML = `<i data-lucide="loader-2" class="spin-loader" style="width: 16px; height: 16px;"></i> <span>${loadingText}</span>`;
+  initLucide();
+  return originalHtml;
+}
+
+function resetButtonLoading(btn, originalHtml) {
+  if (!btn || !originalHtml) return;
+  btn.disabled = false;
+  btn.classList.remove('btn-loading');
+  btn.classList.remove('btn-danger-loading');
+  btn.innerHTML = originalHtml;
+  initLucide();
+}
+
+// ----------------------------------------------------------------------------
+// ANTREAN MUTASI PERSISTEN (MUTATION QUEUE ANTI-TIMPA MULTI-DEVICE)
+// ----------------------------------------------------------------------------
+function getSyncQueue() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.SYNC_QUEUE);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveSyncQueue(queue) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.SYNC_QUEUE, JSON.stringify(queue));
+  } catch (e) {}
+}
+
+let isProcessingQueue = false;
+
+async function processSyncQueue() {
+  if (isProcessingQueue) return;
+  const queue = getSyncQueue();
+  if (!queue || queue.length === 0) return;
+
+  isProcessingQueue = true;
+
+  while (queue.length > 0) {
+    const item = queue[0];
+    try {
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: item.action, sheet: item.sheet, data: item.data })
+      });
+      // Sukses terkirim: hapus item terdepan dari antrean
+      queue.shift();
+      saveSyncQueue(queue);
+    } catch (err) {
+      console.warn('Antrean sinkronisasi tertunda karena koneksi:', err);
+      break;
+    }
+  }
+
+  isProcessingQueue = false;
+}
+
+async function pushToSpreadsheet(action, sheetName, rowData) {
+  const queue = getSyncQueue();
+  const queueItem = {
+    qid: generateUniqueId('Q'),
+    action,
+    sheet: sheetName,
+    data: rowData,
+    timestamp: Date.now()
+  };
+  queue.push(queueItem);
+  saveSyncQueue(queue);
+
+  // Segera proses antrean mutasi
+  processSyncQueue();
 }
 
 let isSyncing = false;
@@ -320,9 +453,8 @@ async function syncFromSpreadsheet(silent = false) {
   isSyncing = true;
   lastSyncAttempt = Date.now();
 
-  const statusDot = document.querySelector('#syncStatusPill .status-dot');
-  // Animasi berputar HANYA muncul saat user klik manual (bukan saat silent background polling)
-  if (statusDot && !silent) statusDot.classList.add('syncing');
+  const reloadBtn = document.getElementById('syncReloadBtn');
+  if (reloadBtn) reloadBtn.classList.add('is-syncing');
 
   if (!silent) showToast('Menghubungkan ke Google Spreadsheet...', 'info');
 
@@ -330,7 +462,7 @@ async function syncFromSpreadsheet(silent = false) {
   const timeoutId = setTimeout(() => controller.abort(), 14000);
 
   try {
-    // Cache-busting URL parameter agar browser mobile selalu mengambil data paling segar
+    // Cache-busting URL parameter agar server Google Apps Script selalu mengirim data live Spreadsheet
     const fetchUrl = `${SCRIPT_URL}?_t=${Date.now()}`;
     const res = await fetch(fetchUrl, { 
       cache: 'no-store',
@@ -343,6 +475,23 @@ async function syncFromSpreadsheet(silent = false) {
     
     if (remoteData && remoteData.status === 'success') {
       const live = remoteData.data || {};
+
+      // PENTING: Pertahankan data lokal yang masih ada di antrean kirim agar tidak tertimpa!
+      const pendingQueue = getSyncQueue();
+      if (pendingQueue && pendingQueue.length > 0) {
+        pendingQueue.forEach(item => {
+          if (item.action === 'append_row' && item.sheet && item.data) {
+            const sheetKey = item.sheet.replace(/[\s&/]/g, '_');
+            const targetList = live[sheetKey] || live[item.sheet];
+            if (Array.isArray(targetList)) {
+              const idKey = Object.keys(item.data).find(k => k.startsWith('ID_'));
+              if (idKey && !targetList.some(r => r[idKey] === item.data[idKey])) {
+                targetList.push(item.data);
+              }
+            }
+          }
+        });
+      }
 
       // Cek apakah data benar-benar berubah sebelum re-render
       const newStr = JSON.stringify(live);
@@ -384,7 +533,7 @@ async function syncFromSpreadsheet(silent = false) {
 
       updateSyncIndicator(true);
       if (!silent) {
-        showToast('Data berhasil disinkronkan! 🌿', 'success');
+        showToast('Data berhasil disegarkan! 🌿', 'success');
         closeModal('modalSettings');
       }
     } else {
@@ -396,8 +545,11 @@ async function syncFromSpreadsheet(silent = false) {
     if (!silent) showToast('Gagal sinkron: Periksa koneksi internet Anda', 'error');
   } finally {
     isSyncing = false;
-    if (statusDot) statusDot.classList.remove('syncing');
+    if (reloadBtn) reloadBtn.classList.remove('is-syncing');
   }
+
+  // Coba proses sisa antrean bila ada
+  processSyncQueue();
 }
 
 function triggerQuickSync() {
@@ -432,20 +584,10 @@ function initAutoSync() {
   }, 60000);
 }
 
-async function pushToSpreadsheet(action, sheetName, rowData) {
-  try {
-    await fetch(SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, sheet: sheetName, data: rowData })
-    });
-  } catch (e) {
-    console.warn('Gagal push ke spreadsheet langsung:', e);
-  }
-}
+function saveWeddingDateSetting(e = null) {
+  const btn = getFormSubmitButton(e, 'modalSettings') || document.querySelector('#modalSettings .btn-primary');
+  const orig = setButtonLoading(btn, 'Menyimpan...');
 
-function saveWeddingDateSetting() {
   const dateVal = document.getElementById('settingWeddingDate').value;
   if (dateVal) {
     weddingData.Master = weddingData.Master || {};
@@ -453,7 +595,13 @@ function saveWeddingDateSetting() {
     saveDataLocally();
     startCountdownTimer();
     pushToSpreadsheet('update_master', 'Master', weddingData.Master);
-    showToast('Tanggal Hari H berhasil disimpan & disinkronkan! 🌿', 'success');
+
+    setTimeout(() => {
+      resetButtonLoading(btn, orig);
+      showToast('Tanggal Hari H berhasil disimpan & disinkronkan! 🌿', 'success');
+    }, 350);
+  } else {
+    resetButtonLoading(btn, orig);
   }
 }
 
@@ -519,7 +667,7 @@ function renderMasterCategoryList() {
         <button type="button" class="btn-isian-action" onclick="openEditMasterCategoryModal(${index})" title="Edit Kategori">
           <i data-lucide="edit-2" style="width: 13px; height: 13px;"></i>
         </button>
-        <button type="button" class="btn-isian-action delete" onclick="deleteMasterCategory(${index})" title="Hapus Kategori">
+        <button type="button" class="btn-isian-action delete" onclick="deleteMasterCategory(${index}, event)" title="Hapus Kategori">
           <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
         </button>
       </div>
@@ -551,7 +699,8 @@ function openEditMasterCategoryModal(index) {
   openModal('modalMasterCategory');
 }
 
-function submitMasterCategoryForm() {
+function submitMasterCategoryForm(e = null) {
+  const btn = getFormSubmitButton(e, 'modalMasterCategory');
   const input = document.getElementById('masterCategoryInput');
   const val = input ? input.value.trim() : '';
   if (!val) {
@@ -559,6 +708,7 @@ function submitMasterCategoryForm() {
     return;
   }
 
+  const orig = setButtonLoading(btn, 'Menyimpan Kategori...');
   const list = getMasterCategoryArray();
 
   if (editingMasterIndex !== null && editingMasterIndex >= 0) {
@@ -566,6 +716,7 @@ function submitMasterCategoryForm() {
     showToast('Kategori master berhasil diperbarui! ✨', 'success');
   } else {
     if (list.includes(val)) {
+      resetButtonLoading(btn, orig);
       showToast('Kategori ini sudah ada!', 'info');
       return;
     }
@@ -575,27 +726,34 @@ function submitMasterCategoryForm() {
 
   saveDataLocally();
   renderMasterCategoryList();
-  closeModal('modalMasterCategory');
-
-  // Re-populate dropdowns across the app
   refreshAllCategoryDropdowns();
-
-  // Push to Google Spreadsheet
   pushToSpreadsheet('update_master', 'Master', weddingData.Master);
+
+  setTimeout(() => {
+    resetButtonLoading(btn, orig);
+    closeModal('modalMasterCategory');
+  }, 350);
 }
 
-function deleteMasterCategory(index) {
+function deleteMasterCategory(index, e = null) {
   const list = getMasterCategoryArray();
   const name = list[index];
   if (!name) return;
 
   if (confirm(`Apakah Anda yakin ingin menghapus kategori "${name}" dari data Master?`)) {
+    const btn = getActionButton(e, null, 'button');
+    const orig = setButtonLoading(btn, '...');
+    if (btn) btn.classList.add('btn-danger-loading');
+
     list.splice(index, 1);
     saveDataLocally();
     renderMasterCategoryList();
     refreshAllCategoryDropdowns();
     pushToSpreadsheet('update_master', 'Master', weddingData.Master);
-    showToast(`Kategori "${name}" berhasil dihapus! 🗑️`, 'info');
+
+    setTimeout(() => {
+      showToast(`Kategori "${name}" berhasil dihapus! 🗑️`, 'info');
+    }, 250);
   }
 }
 
@@ -875,7 +1033,8 @@ function openEditWalletModal() {
   openModal('modalEditDompet');
 }
 
-function submitEditDompet() {
+function submitEditDompet(e = null) {
+  const btn = getFormSubmitButton(e, 'modalEditDompet');
   const wallet = (weddingData.Dompet || []).find(w => w.ID_Dompet === selectedWalletId);
   if (!wallet) return;
 
@@ -886,6 +1045,8 @@ function submitEditDompet() {
     showToast('Nama dompet tidak boleh kosong!', 'error');
     return;
   }
+
+  const orig = setButtonLoading(btn, 'Menyimpan Perubahan...');
 
   const oldName = wallet.Nama_Dompet;
   wallet.Nama_Dompet = newName;
@@ -905,24 +1066,37 @@ function submitEditDompet() {
 
   saveDataLocally();
   renderAllViews();
-  closeModal('modalEditDompet');
-  showToast('Dompet berhasil diperbarui! 💳', 'success');
-  pushToSpreadsheet('append_row', 'Dompet', wallet);
+  pushToSpreadsheet('update_wallet', 'Dompet', wallet);
+
+  setTimeout(() => {
+    resetButtonLoading(btn, orig);
+    closeModal('modalEditDompet');
+    showToast('Dompet berhasil diperbarui! 💳', 'success');
+  }, 350);
 }
 
-function deleteWallet() {
+function deleteWallet(e = null) {
   const wallet = (weddingData.Dompet || []).find(w => w.ID_Dompet === selectedWalletId);
   if (!wallet) return;
 
   if (confirm(`Apakah Anda yakin ingin menghapus dompet "${wallet.Nama_Dompet}"?`)) {
+    const btn = getActionButton(e, 'modalDompetAction', 'button.danger');
+    const orig = setButtonLoading(btn, 'Menghapus Dompet...');
+    if (btn) btn.classList.add('btn-danger-loading');
+
     weddingData.Dompet = (weddingData.Dompet || []).filter(w => w.ID_Dompet !== selectedWalletId);
     if (currentTxWalletFilter === wallet.Nama_Dompet) {
       clearTxWalletFilter();
     }
     saveDataLocally();
     renderAllViews();
-    closeModal('modalDompetAction');
-    showToast('Dompet berhasil dihapus! 🗑️', 'info');
+    pushToSpreadsheet('delete_row', 'Dompet', { ID: selectedWalletId });
+
+    setTimeout(() => {
+      resetButtonLoading(btn, orig);
+      closeModal('modalDompetAction');
+      showToast('Dompet berhasil dihapus! 🗑️', 'info');
+    }, 350);
   }
 }
 
@@ -1227,7 +1401,8 @@ function openEditAnggaranModal() {
   openModal('modalEditAnggaran');
 }
 
-function submitEditAnggaran() {
+function submitEditAnggaran(e = null) {
+  const btn = getFormSubmitButton(e, 'modalEditAnggaran');
   const item = (weddingData.Anggaran || []).find(a => a.ID_Anggaran === selectedAnggaranId);
   if (!item) return;
 
@@ -1244,6 +1419,7 @@ function submitEditAnggaran() {
     return;
   }
 
+  const orig = setButtonLoading(btn, 'Menyimpan Perubahan...');
   const sisa = Math.max(0, riil - bayar);
 
   item.Kategori_Anggaran = kategori;
@@ -1257,22 +1433,34 @@ function submitEditAnggaran() {
 
   saveDataLocally();
   renderAllViews();
-  closeModal('modalEditAnggaran');
-  showToast(`Pos anggaran "${itemName}" berhasil diperbarui! 💰`, 'success');
   pushToSpreadsheet('update_anggaran', 'Anggaran', item);
+
+  setTimeout(() => {
+    resetButtonLoading(btn, orig);
+    closeModal('modalEditAnggaran');
+    showToast(`Pos anggaran "${itemName}" berhasil diperbarui! 💰`, 'success');
+  }, 350);
 }
 
-function deleteAnggaranItem() {
+function deleteAnggaranItem(e = null) {
   const item = (weddingData.Anggaran || []).find(a => a.ID_Anggaran === selectedAnggaranId);
   if (!item) return;
 
   if (confirm(`Apakah Anda yakin ingin menghapus pos anggaran "${item.Item}"?`)) {
+    const btn = getActionButton(e, 'modalAnggaranDetail', 'button');
+    const orig = setButtonLoading(btn, 'Menghapus...');
+    if (btn) btn.classList.add('btn-danger-loading');
+
     weddingData.Anggaran = (weddingData.Anggaran || []).filter(a => a.ID_Anggaran !== selectedAnggaranId);
     saveDataLocally();
     renderAllViews();
-    closeModal('modalAnggaranDetail');
-    showToast(`Pos anggaran "${item.Item}" berhasil dihapus! 🗑️`, 'info');
     pushToSpreadsheet('delete_row', 'Anggaran', { ID: selectedAnggaranId });
+
+    setTimeout(() => {
+      resetButtonLoading(btn, orig);
+      closeModal('modalAnggaranDetail');
+      showToast(`Pos anggaran "${item.Item}" berhasil dihapus! 🗑️`, 'info');
+    }, 350);
   }
 }
 
@@ -1448,7 +1636,8 @@ function openEditTimelineModal() {
   openModal('modalTimelineEdit');
 }
 
-function submitEditTimeline() {
+function submitEditTimeline(e = null) {
+  const btn = getFormSubmitButton(e, 'modalTimelineEdit');
   const item = (weddingData.Timeline || []).find(t => t.ID_Timeline === selectedTimelineId);
   if (!item) return;
 
@@ -1462,6 +1651,8 @@ function submitEditTimeline() {
     return;
   }
 
+  const orig = setButtonLoading(btn, 'Menyimpan Perubahan...');
+
   item.Kategori = kategori;
   item.Nama_Item = itemName;
   item.Deadline = deadline;
@@ -1470,23 +1661,35 @@ function submitEditTimeline() {
   saveDataLocally();
   renderTimeline();
   renderDashboard();
-  closeModal('modalTimelineEdit');
-  showToast('Agenda timeline berhasil diperbarui! 🗓️', 'success');
   pushToSpreadsheet('update_timeline', 'Timeline', item);
+
+  setTimeout(() => {
+    resetButtonLoading(btn, orig);
+    closeModal('modalTimelineEdit');
+    showToast('Agenda timeline berhasil diperbarui! 🗓️', 'success');
+  }, 350);
 }
 
-function deleteTimelineItem() {
+function deleteTimelineItem(e = null) {
   const item = (weddingData.Timeline || []).find(t => t.ID_Timeline === selectedTimelineId);
   if (!item) return;
 
   if (confirm(`Apakah Anda yakin ingin menghapus agenda "${item.Nama_Item}"?`)) {
+    const btn = getActionButton(e, 'modalTimelineDetail', 'button.danger');
+    const orig = setButtonLoading(btn, 'Menghapus...');
+    if (btn) btn.classList.add('btn-danger-loading');
+
     weddingData.Timeline = (weddingData.Timeline || []).filter(t => t.ID_Timeline !== selectedTimelineId);
     saveDataLocally();
     renderTimeline();
     renderDashboard();
-    closeModal('modalTimelineDetail');
-    showToast('Agenda berhasil dihapus! 🗑️', 'info');
     pushToSpreadsheet('delete_row', 'Timeline', { ID: selectedTimelineId });
+
+    setTimeout(() => {
+      resetButtonLoading(btn, orig);
+      closeModal('modalTimelineDetail');
+      showToast('Agenda berhasil dihapus! 🗑️', 'info');
+    }, 350);
   }
 }
 
@@ -1580,7 +1783,8 @@ function openEditRundownModal() {
   openModal('modalRundownEdit');
 }
 
-function submitEditRundown() {
+function submitEditRundown(e = null) {
+  const btn = getFormSubmitButton(e, 'modalRundownEdit');
   const item = (weddingData.Rundown_Hari_H || []).find(r => r.ID_Rundown === selectedRundownId);
   if (!item) return;
 
@@ -1596,6 +1800,8 @@ function submitEditRundown() {
     return;
   }
 
+  const orig = setButtonLoading(btn, 'Menyimpan Perubahan...');
+
   item.Waktu_Mulai = mulai;
   item.Waktu_Selesai = selesai;
   item.Kegiatan = kegiatan;
@@ -1605,22 +1811,34 @@ function submitEditRundown() {
 
   saveDataLocally();
   renderRundown();
-  closeModal('modalRundownEdit');
-  showToast('Rundown acara berhasil diperbarui! ⏱️', 'success');
   pushToSpreadsheet('update_rundown', 'Rundown Hari H', item);
+
+  setTimeout(() => {
+    resetButtonLoading(btn, orig);
+    closeModal('modalRundownEdit');
+    showToast('Rundown acara berhasil diperbarui! ⏱️', 'success');
+  }, 350);
 }
 
-function deleteRundownItem() {
+function deleteRundownItem(e = null) {
   const item = (weddingData.Rundown_Hari_H || []).find(r => r.ID_Rundown === selectedRundownId);
   if (!item) return;
 
   if (confirm(`Apakah Anda yakin ingin menghapus susunan acara "${item.Kegiatan}"?`)) {
+    const btn = getActionButton(e, 'modalRundownDetail', 'button.danger');
+    const orig = setButtonLoading(btn, 'Menghapus...');
+    if (btn) btn.classList.add('btn-danger-loading');
+
     weddingData.Rundown_Hari_H = (weddingData.Rundown_Hari_H || []).filter(r => r.ID_Rundown !== selectedRundownId);
     saveDataLocally();
     renderRundown();
-    closeModal('modalRundownDetail');
-    showToast('Susunan acara berhasil dihapus! 🗑️', 'info');
     pushToSpreadsheet('delete_row', 'Rundown Hari H', { ID: selectedRundownId });
+
+    setTimeout(() => {
+      resetButtonLoading(btn, orig);
+      closeModal('modalRundownDetail');
+      showToast('Susunan acara berhasil dihapus! 🗑️', 'info');
+    }, 350);
   }
 }
 
@@ -1892,7 +2110,8 @@ function openEditVendorModal() {
   openModal('modalVendorEdit');
 }
 
-function submitEditVendor() {
+function submitEditVendor(e = null) {
+  const btn = getFormSubmitButton(e, 'modalVendorEdit');
   const item = (weddingData.Vendor || []).find(v => v.ID_Vendor === selectedVendorId);
   if (!item) return;
 
@@ -1910,6 +2129,8 @@ function submitEditVendor() {
     return;
   }
 
+  const orig = setButtonLoading(btn, 'Menyimpan Perubahan...');
+
   item.Nama_Vendor = nama;
   item.Kategori_Vendor = kategori;
   item.Total_Biaya = total;
@@ -1921,22 +2142,34 @@ function submitEditVendor() {
 
   saveDataLocally();
   renderVendor();
-  closeModal('modalVendorEdit');
-  showToast('Data vendor & produk berhasil diperbarui! ✨', 'success');
   pushToSpreadsheet('update_vendor', 'Vendor', item);
+
+  setTimeout(() => {
+    resetButtonLoading(btn, orig);
+    closeModal('modalVendorEdit');
+    showToast('Data vendor & produk berhasil diperbarui! ✨', 'success');
+  }, 350);
 }
 
-function deleteVendorItem() {
+function deleteVendorItem(e = null) {
   const item = (weddingData.Vendor || []).find(v => v.ID_Vendor === selectedVendorId);
   if (!item) return;
 
   if (confirm(`Apakah Anda yakin ingin menghapus vendor "${item.Nama_Vendor}"?`)) {
+    const btn = getActionButton(e, 'modalVendorDetail', 'button.danger');
+    const orig = setButtonLoading(btn, 'Menghapus...');
+    if (btn) btn.classList.add('btn-danger-loading');
+
     weddingData.Vendor = (weddingData.Vendor || []).filter(v => v.ID_Vendor !== selectedVendorId);
     saveDataLocally();
     renderVendor();
-    closeModal('modalVendorDetail');
-    showToast('Vendor berhasil dihapus! 🗑️', 'info');
     pushToSpreadsheet('delete_row', 'Vendor', { ID: selectedVendorId });
+
+    setTimeout(() => {
+      resetButtonLoading(btn, orig);
+      closeModal('modalVendorDetail');
+      showToast('Vendor berhasil dihapus! 🗑️', 'info');
+    }, 350);
   }
 }
 
@@ -2260,7 +2493,8 @@ function openEditTamuModal() {
   openModal('modalTamuEdit');
 }
 
-function submitEditTamu() {
+function submitEditTamu(e = null) {
+  const btn = getFormSubmitButton(e, 'modalTamuEdit');
   const g = (weddingData.Tamu_Undangan || []).find(t => t.ID_Tamu === selectedTamuId);
   if (!g) return;
 
@@ -2274,6 +2508,8 @@ function submitEditTamu() {
     showToast('Nama dan nomor WhatsApp tidak boleh kosong!', 'error');
     return;
   }
+
+  const orig = setButtonLoading(btn, 'Menyimpan Perubahan...');
 
   // Collect pax names if pax > 1
   let paxNames = [];
@@ -2293,22 +2529,34 @@ function submitEditTamu() {
 
   saveDataLocally();
   renderTamu();
-  closeModal('modalTamuEdit');
-  showToast('Data tamu undangan berhasil diperbarui! ✨', 'success');
   pushToSpreadsheet('update_tamu', 'Tamu Undangan', g);
+
+  setTimeout(() => {
+    resetButtonLoading(btn, orig);
+    closeModal('modalTamuEdit');
+    showToast('Data tamu undangan berhasil diperbarui! ✨', 'success');
+  }, 350);
 }
 
-function deleteTamuItem() {
+function deleteTamuItem(e = null) {
   const g = (weddingData.Tamu_Undangan || []).find(t => t.ID_Tamu === selectedTamuId);
   if (!g) return;
 
   if (confirm(`Apakah Anda yakin ingin menghapus data tamu "${g.Nama_Tamu}"?`)) {
+    const btn = getActionButton(e, 'modalTamuDetail', 'button.danger');
+    const orig = setButtonLoading(btn, 'Menghapus...');
+    if (btn) btn.classList.add('btn-danger-loading');
+
     weddingData.Tamu_Undangan = (weddingData.Tamu_Undangan || []).filter(t => t.ID_Tamu !== selectedTamuId);
     saveDataLocally();
     renderTamu();
-    closeModal('modalTamuDetail');
-    showToast('Tamu berhasil dihapus! 🗑️', 'info');
     pushToSpreadsheet('delete_row', 'Tamu Undangan', { ID: selectedTamuId });
+
+    setTimeout(() => {
+      resetButtonLoading(btn, orig);
+      closeModal('modalTamuDetail');
+      showToast('Tamu berhasil dihapus! 🗑️', 'info');
+    }, 350);
   }
 }
 
@@ -2569,7 +2817,8 @@ function openEditKnowledgeModal() {
   openModal('modalKnowledgeEdit');
 }
 
-function submitEditKnowledge() {
+function submitEditKnowledge(e = null) {
+  const btn = getFormSubmitButton(e, 'modalKnowledgeEdit');
   const k = (weddingData.Knowledge || []).find(item => item.ID_Knowledge === selectedKnowledgeId);
   if (!k) return;
 
@@ -2586,6 +2835,8 @@ function submitEditKnowledge() {
     showToast('Harap lengkapi kategori dan nama target!', 'error');
     return;
   }
+
+  const orig = setButtonLoading(btn, 'Menyimpan Perubahan...');
 
   const pct = Math.min(100, Math.round((progres / target) * 100));
   const now = new Date();
@@ -2604,26 +2855,39 @@ function submitEditKnowledge() {
 
   saveDataLocally();
   renderKnowledgeAndFiles();
-  closeModal('modalKnowledgeEdit');
-  showToast('Target knowledge berhasil diperbarui! ✨', 'success');
   pushToSpreadsheet('update_knowledge', 'Knowledge', k);
+
+  setTimeout(() => {
+    resetButtonLoading(btn, orig);
+    closeModal('modalKnowledgeEdit');
+    showToast('Target knowledge berhasil diperbarui! ✨', 'success');
+  }, 350);
 }
 
-function deleteKnowledgeItem() {
+function deleteKnowledgeItem(e = null) {
   const k = (weddingData.Knowledge || []).find(item => item.ID_Knowledge === selectedKnowledgeId);
   if (!k) return;
 
   if (confirm(`Apakah Anda yakin ingin menghapus target "${k.Judul}"?`)) {
+    const btn = getActionButton(e, 'modalKnowledgeDetail', 'button.danger');
+    const orig = setButtonLoading(btn, 'Menghapus...');
+    if (btn) btn.classList.add('btn-danger-loading');
+
     weddingData.Knowledge = (weddingData.Knowledge || []).filter(item => item.ID_Knowledge !== selectedKnowledgeId);
     saveDataLocally();
     renderKnowledgeAndFiles();
-    closeModal('modalKnowledgeDetail');
-    showToast('Target knowledge berhasil dihapus! 🗑️', 'info');
     pushToSpreadsheet('delete_row', 'Knowledge', { ID: selectedKnowledgeId });
+
+    setTimeout(() => {
+      resetButtonLoading(btn, orig);
+      closeModal('modalKnowledgeDetail');
+      showToast('Target knowledge berhasil dihapus! 🗑️', 'info');
+    }, 350);
   }
 }
 
-function submitKnowledge() {
+function submitKnowledge(e = null) {
+  const btn = getFormSubmitButton(e, 'modalKnowledge');
   const jenis = document.getElementById('knKategori').value.trim();
   const judul = document.getElementById('knJudul').value.trim();
   const target = Number(document.getElementById('knTarget').value) || 100;
@@ -2638,12 +2902,14 @@ function submitKnowledge() {
     return;
   }
 
+  const orig = setButtonLoading(btn, 'Menyimpan Target...');
+
   const pct = Math.min(100, Math.round((progres / target) * 100));
   const now = new Date();
   const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   const newKnowledge = {
-    ID_Knowledge: 'K' + Date.now().toString().slice(-4),
+    ID_Knowledge: generateUniqueId('K'),
     Jenis: jenis,
     Judul: judul,
     Target: target,
@@ -2661,7 +2927,7 @@ function submitKnowledge() {
 
   saveDataLocally();
   renderKnowledgeAndFiles();
-  closeModal('modalKnowledge');
+  pushToSpreadsheet('append_row', 'Knowledge', newKnowledge);
 
   document.getElementById('knKategori').value = '';
   document.getElementById('knJudul').value = '';
@@ -2670,8 +2936,11 @@ function submitKnowledge() {
   document.getElementById('knProgres').value = '0';
   document.getElementById('knCatatan').value = '';
 
-  showToast('Target knowledge berhasil ditambahkan! 📚', 'success');
-  pushToSpreadsheet('append_row', 'Knowledge', newKnowledge);
+  setTimeout(() => {
+    resetButtonLoading(btn, orig);
+    closeModal('modalKnowledge');
+    showToast('Target knowledge berhasil ditambahkan! 📚', 'success');
+  }, 350);
 }
 
 // ----------------------------------------------------------------------------
@@ -2714,7 +2983,8 @@ function openEditFileModal() {
   openModal('modalFileEdit');
 }
 
-function submitEditFile() {
+function submitEditFile(e = null) {
+  const btn = getFormSubmitButton(e, 'modalFileEdit');
   const f = (weddingData.Files || []).find(item => item.ID_File === selectedFileId);
   if (!f) return;
 
@@ -2728,6 +2998,8 @@ function submitEditFile() {
     return;
   }
 
+  const orig = setButtonLoading(btn, 'Menyimpan Perubahan...');
+
   f.Nama_File = nama;
   f.Jenis_File = jenis;
   f.Link = link;
@@ -2735,26 +3007,39 @@ function submitEditFile() {
 
   saveDataLocally();
   renderKnowledgeAndFiles();
-  closeModal('modalFileEdit');
-  showToast('Dokumen/berkas berhasil diperbarui! ✨', 'success');
   pushToSpreadsheet('update_file', 'Files', f);
+
+  setTimeout(() => {
+    resetButtonLoading(btn, orig);
+    closeModal('modalFileEdit');
+    showToast('Dokumen/berkas berhasil diperbarui! ✨', 'success');
+  }, 350);
 }
 
-function deleteFileItem() {
+function deleteFileItem(e = null) {
   const f = (weddingData.Files || []).find(item => item.ID_File === selectedFileId);
   if (!f) return;
 
   if (confirm(`Apakah Anda yakin ingin menghapus berkas "${f.Nama_File}"?`)) {
+    const btn = getActionButton(e, 'modalFileDetail', 'button.danger');
+    const orig = setButtonLoading(btn, 'Menghapus...');
+    if (btn) btn.classList.add('btn-danger-loading');
+
     weddingData.Files = (weddingData.Files || []).filter(item => item.ID_File !== selectedFileId);
     saveDataLocally();
     renderKnowledgeAndFiles();
-    closeModal('modalFileDetail');
-    showToast('Dokumen/berkas berhasil dihapus! 🗑️', 'info');
     pushToSpreadsheet('delete_row', 'Files', { ID: selectedFileId });
+
+    setTimeout(() => {
+      resetButtonLoading(btn, orig);
+      closeModal('modalFileDetail');
+      showToast('Dokumen/berkas berhasil dihapus! 🗑️', 'info');
+    }, 350);
   }
 }
 
-function submitFile() {
+function submitFile(e = null) {
+  const btn = getFormSubmitButton(e, 'modalFile');
   const nama = document.getElementById('flNama').value.trim();
   const jenis = document.getElementById('flJenis').value;
   const link = document.getElementById('flLink').value.trim();
@@ -2765,8 +3050,10 @@ function submitFile() {
     return;
   }
 
+  const orig = setButtonLoading(btn, 'Menyimpan Berkas...');
+
   const newFile = {
-    ID_File: 'F' + Date.now().toString().slice(-4),
+    ID_File: generateUniqueId('F'),
     Nama_File: nama,
     Jenis_File: jenis,
     Link: link,
@@ -2778,14 +3065,17 @@ function submitFile() {
 
   saveDataLocally();
   renderKnowledgeAndFiles();
-  closeModal('modalFile');
+  pushToSpreadsheet('append_row', 'Files', newFile);
 
   document.getElementById('flNama').value = '';
   document.getElementById('flLink').value = '';
   document.getElementById('flKeterangan').value = '';
 
-  showToast('Dokumen/berkas baru berhasil disimpan! 📁', 'success');
-  pushToSpreadsheet('append_row', 'Files', newFile);
+  setTimeout(() => {
+    resetButtonLoading(btn, orig);
+    closeModal('modalFile');
+    showToast('Dokumen/berkas baru berhasil disimpan! 📁', 'success');
+  }, 350);
 }
 
 // ----------------------------------------------------------------------------
@@ -2942,7 +3232,7 @@ function renderIsianKnowledge() {
                   <button type="button" class="btn-isian-action" onclick="openEditIsianModal('${item.ID_Log}')" title="Edit Isian">
                     <i data-lucide="edit-2" style="width: 13px; height: 13px;"></i>
                   </button>
-                  <button type="button" class="btn-isian-action delete" onclick="deleteIsianItem('${item.ID_Log}')" title="Hapus Isian">
+                  <button type="button" class="btn-isian-action delete" onclick="deleteIsianItem('${item.ID_Log}', event)" title="Hapus Isian">
                     <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
                   </button>
                 </div>
@@ -3029,7 +3319,8 @@ function openTambahIsianModal() {
   openModal('modalTambahIsian');
 }
 
-function submitTambahIsian() {
+function submitTambahIsian(e = null) {
+  const btn = getFormSubmitButton(e, 'modalTambahIsian');
   const bagian = document.getElementById('isianBagian').value.trim() || 'Umum';
   const judul = document.getElementById('isianJudul').value.trim();
   const jenis = document.getElementById('isianJenis').value;
@@ -3041,12 +3332,14 @@ function submitTambahIsian() {
     return;
   }
 
+  const orig = setButtonLoading(btn, 'Menyimpan Isian...');
+
   const now = new Date();
   const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   const dayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   const newIsian = {
-    ID_Log: 'L' + Date.now().toString().slice(-5),
+    ID_Log: generateUniqueId('L'),
     ID_Knowledge: activeIsianKnowledgeId,
     Tanggal_Waktu: dateStr,
     Bagian: bagian,
@@ -3066,9 +3359,13 @@ function submitTambahIsian() {
   saveDataLocally();
   renderIsianKnowledge();
   renderKnowledgeAndFiles();
-  closeModal('modalTambahIsian');
-  showToast('Isian knowledge berhasil ditambahkan! ✨', 'success');
   pushToSpreadsheet('append_row', 'Isian Knowledge', newIsian);
+
+  setTimeout(() => {
+    resetButtonLoading(btn, orig);
+    closeModal('modalTambahIsian');
+    showToast('Isian knowledge berhasil ditambahkan! ✨', 'success');
+  }, 350);
 }
 
 function openEditIsianModal(idLog) {
@@ -3088,7 +3385,8 @@ function openEditIsianModal(idLog) {
   openModal('modalEditIsian');
 }
 
-function submitEditIsian() {
+function submitEditIsian(e = null) {
+  const btn = getFormSubmitButton(e, 'modalEditIsian');
   const item = (weddingData.Isian_Knowledge || []).find(i => i.ID_Log === selectedIsianLogId);
   if (!item) return;
 
@@ -3102,6 +3400,8 @@ function submitEditIsian() {
     showToast('Harap lengkapi judul dan isi catatan!', 'error');
     return;
   }
+
+  const orig = setButtonLoading(btn, 'Menyimpan Perubahan...');
 
   const now = new Date();
   const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -3120,22 +3420,42 @@ function submitEditIsian() {
 
   saveDataLocally();
   renderIsianKnowledge();
-  closeModal('modalEditIsian');
-  showToast('Isian knowledge berhasil diperbarui! ✨', 'success');
   pushToSpreadsheet('update_isian_knowledge', 'Isian Knowledge', item);
+
+  setTimeout(() => {
+    resetButtonLoading(btn, orig);
+    closeModal('modalEditIsian');
+    showToast('Isian knowledge berhasil diperbarui! ✨', 'success');
+  }, 350);
 }
 
-function deleteIsianItem(idLog) {
+function deleteIsianItem(idLog, e = null) {
   const item = (weddingData.Isian_Knowledge || []).find(i => i.ID_Log === idLog);
   if (!item) return;
 
   if (confirm(`Apakah Anda yakin ingin menghapus isian "${item.Judul_Isian}"?`)) {
+    const btn = (e && e.target) ? e.target.closest('button') : null;
+    let orig = null;
+    if (btn) {
+      orig = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<i data-lucide="loader-2" class="spin-loader" style="width: 13px; height: 13px;"></i>`;
+      initLucide();
+    }
+
     weddingData.Isian_Knowledge = (weddingData.Isian_Knowledge || []).filter(i => i.ID_Log !== idLog);
     saveDataLocally();
     renderIsianKnowledge();
     renderKnowledgeAndFiles();
-    showToast('Isian knowledge berhasil dihapus! 🗑️', 'info');
     pushToSpreadsheet('delete_row', 'Isian Knowledge', { ID: idLog });
+
+    setTimeout(() => {
+      if (btn && orig) {
+        btn.disabled = false;
+        btn.innerHTML = orig;
+      }
+      showToast('Isian knowledge berhasil dihapus! 🗑️', 'info');
+    }, 350);
   }
 }
 
@@ -3317,7 +3637,8 @@ function onTxItemSelectChange() {
 // ============================================================================
 
 // Submit Transaksi Baru
-function submitTransaksi() {
+function submitTransaksi(e = null) {
+  const btn = getFormSubmitButton(e, 'modalTransaksi');
   const type = document.getElementById('txType').value;
   const walletName = document.getElementById('txWallet').value;
   const amount = Number(document.getElementById('txAmount').value);
@@ -3326,6 +3647,8 @@ function submitTransaksi() {
     showToast('Harap pilih dompet dan masukkan nominal yang valid!', 'error');
     return;
   }
+
+  const orig = setButtonLoading(btn, 'Menyimpan Transaksi...');
 
   let category = '';
   let itemName = '';
@@ -3364,7 +3687,7 @@ function submitTransaksi() {
   const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
   const newTx = {
-    ID_Transaksi: 'TX' + Date.now().toString().slice(-4),
+    ID_Transaksi: generateUniqueId('TX'),
     Tanggal_Waktu: dateStr,
     Dompet: walletName,
     Kategori: category,
@@ -3381,19 +3704,24 @@ function submitTransaksi() {
 
   saveDataLocally();
   renderAllViews();
-  closeModal('modalTransaksi');
+  pushToSpreadsheet('append_row', 'Transaksi Keuangan', newTx);
+
   document.getElementById('txAmount').value = '';
   const customInput = document.getElementById('txItemNameCustom');
   if (customInput) customInput.value = '';
   const ketInput = document.getElementById('txKeteranganPemasukan');
   if (ketInput) ketInput.value = '';
 
-  showToast('Transaksi berhasil dicatat! 🌿', 'success');
-  pushToSpreadsheet('append_row', 'Transaksi Keuangan', newTx);
+  setTimeout(() => {
+    resetButtonLoading(btn, orig);
+    closeModal('modalTransaksi');
+    showToast('Transaksi berhasil dicatat! 🌿', 'success');
+  }, 350);
 }
 
 // Submit Tamu Baru (dengan Jumlah Pax & Daftar Nama)
-function submitTamu() {
+function submitTamu(e = null) {
+  const btn = getFormSubmitButton(e, 'modalTamu');
   const nama = document.getElementById('tamuNama').value.trim();
   const kategori = document.getElementById('tamuKategori').value;
   const pax = Number(document.getElementById('tamuPax').value) || 1;
@@ -3404,6 +3732,8 @@ function submitTamu() {
     showToast('Harap lengkapi nama dan nomor WhatsApp tamu!', 'error');
     return;
   }
+
+  const orig = setButtonLoading(btn, 'Menyimpan Tamu...');
 
   // Normalize WhatsApp number if starts with 0
   if (nomor.startsWith('0')) {
@@ -3420,7 +3750,7 @@ function submitTamu() {
   }
 
   const newGuest = {
-    ID_Tamu: 'G' + Date.now().toString().slice(-4),
+    ID_Tamu: generateUniqueId('G'),
     Nama_Tamu: nama,
     Kategori_Tamu: kategori,
     Jumlah_Pax: pax,
@@ -3434,19 +3764,24 @@ function submitTamu() {
 
   saveDataLocally();
   renderAllViews();
-  closeModal('modalTamu');
+  pushToSpreadsheet('append_row', 'Tamu Undangan', newGuest);
+
   document.getElementById('tamuNama').value = '';
   document.getElementById('tamuNomorWA').value = '';
   document.getElementById('tamuPax').value = '1';
   document.getElementById('tamuPaxNamesContainer').innerHTML = '';
   document.getElementById('tamuPaxNamesContainer').style.display = 'none';
 
-  showToast('Tamu berhasil ditambahkan! 💌', 'success');
-  pushToSpreadsheet('append_row', 'Tamu Undangan', newGuest);
+  setTimeout(() => {
+    resetButtonLoading(btn, orig);
+    closeModal('modalTamu');
+    showToast('Tamu berhasil ditambahkan! 💌', 'success');
+  }, 350);
 }
 
 // Submit Timeline Baru
-function submitTimeline() {
+function submitTimeline(e = null) {
+  const btn = getFormSubmitButton(e, 'modalTimeline');
   const kategori = document.getElementById('tlKategori').value;
   const item = document.getElementById('tlItem').value.trim();
   const deadline = document.getElementById('tlDeadline').value;
@@ -3457,8 +3792,10 @@ function submitTimeline() {
     return;
   }
 
+  const orig = setButtonLoading(btn, 'Menyimpan Agenda...');
+
   const newTimeline = {
-    ID_Timeline: 'TL' + Date.now().toString().slice(-4),
+    ID_Timeline: generateUniqueId('TL'),
     Kategori: kategori,
     Nama_Item: item,
     Deadline: deadline,
@@ -3471,17 +3808,22 @@ function submitTimeline() {
 
   saveDataLocally();
   renderAllViews();
-  closeModal('modalTimeline');
+  pushToSpreadsheet('append_row', 'Timeline', newTimeline);
+
   document.getElementById('tlItem').value = '';
   document.getElementById('tlDeadline').value = '';
   document.getElementById('tlCatatan').value = '';
 
-  showToast('Agenda timeline berhasil ditambahkan! 🗓', 'success');
-  pushToSpreadsheet('append_row', 'Timeline', newTimeline);
+  setTimeout(() => {
+    resetButtonLoading(btn, orig);
+    closeModal('modalTimeline');
+    showToast('Agenda timeline berhasil ditambahkan! 🗓', 'success');
+  }, 350);
 }
 
 // Submit Rundown Hari H Baru
-function submitRundown() {
+function submitRundown(e = null) {
+  const btn = getFormSubmitButton(e, 'modalRundown');
   const start = document.getElementById('rdStart').value;
   const end = document.getElementById('rdEnd').value;
   const kegiatan = document.getElementById('rdKegiatan').value.trim();
@@ -3494,8 +3836,10 @@ function submitRundown() {
     return;
   }
 
+  const orig = setButtonLoading(btn, 'Menyimpan Rundown...');
+
   const newRundown = {
-    ID_Rundown: 'RD' + Date.now().toString().slice(-4),
+    ID_Rundown: generateUniqueId('RD'),
     Waktu_Mulai: start,
     Waktu_Selesai: end,
     Kegiatan: kegiatan,
@@ -3509,7 +3853,8 @@ function submitRundown() {
 
   saveDataLocally();
   renderAllViews();
-  closeModal('modalRundown');
+  pushToSpreadsheet('append_row', 'Rundown Hari H', newRundown);
+
   document.getElementById('rdStart').value = '';
   document.getElementById('rdEnd').value = '';
   document.getElementById('rdKegiatan').value = '';
@@ -3517,12 +3862,16 @@ function submitRundown() {
   document.getElementById('rdLokasi').value = '';
   document.getElementById('rdCatatan').value = '';
 
-  showToast('Rundown berhasil ditambahkan! ⏱️', 'success');
-  pushToSpreadsheet('append_row', 'Rundown Hari H', newRundown);
+  setTimeout(() => {
+    resetButtonLoading(btn, orig);
+    closeModal('modalRundown');
+    showToast('Rundown berhasil ditambahkan! ⏱️', 'success');
+  }, 350);
 }
 
 // Submit Vendor Baru (dengan Total Biaya & DP)
-function submitVendor() {
+function submitVendor(e = null) {
+  const btn = getFormSubmitButton(e, 'modalVendor');
   const nama = document.getElementById('vendorNama').value.trim();
   const kategori = document.getElementById('vendorKategori').value;
   const totalBiaya = Number(document.getElementById('vendorTotalBiaya').value) || 0;
@@ -3537,8 +3886,10 @@ function submitVendor() {
     return;
   }
 
+  const orig = setButtonLoading(btn, 'Menyimpan Vendor...');
+
   const newVendor = {
-    ID_Vendor: 'V' + Date.now().toString().slice(-4),
+    ID_Vendor: generateUniqueId('V'),
     Kategori_Vendor: kategori,
     Nama_Vendor: nama,
     Total_Biaya: totalBiaya,
@@ -3554,7 +3905,8 @@ function submitVendor() {
 
   saveDataLocally();
   renderAllViews();
-  closeModal('modalVendor');
+  pushToSpreadsheet('append_row', 'Vendor', newVendor);
+
   document.getElementById('vendorNama').value = '';
   document.getElementById('vendorTotalBiaya').value = '0';
   document.getElementById('vendorNominalDP').value = '0';
@@ -3562,12 +3914,16 @@ function submitVendor() {
   document.getElementById('vendorLink').value = '';
   document.getElementById('vendorKeterangan').value = '';
 
-  showToast('Vendor berhasil disimpan! 🌿', 'success');
-  pushToSpreadsheet('append_row', 'Vendor', newVendor);
+  setTimeout(() => {
+    resetButtonLoading(btn, orig);
+    closeModal('modalVendor');
+    showToast('Vendor berhasil disimpan! 🌿', 'success');
+  }, 350);
 }
 
 // Submit Dompet Baru
-function submitDompet() {
+function submitDompet(e = null) {
+  const btn = getFormSubmitButton(e, 'modalDompet');
   const nama = document.getElementById('dompetNama').value.trim();
   const saldo = Number(document.getElementById('dompetSaldo').value) || 0;
 
@@ -3576,8 +3932,10 @@ function submitDompet() {
     return;
   }
 
+  const orig = setButtonLoading(btn, 'Menyimpan Dompet...');
+
   const newWallet = {
-    ID_Dompet: 'D' + Date.now().toString().slice(-4),
+    ID_Dompet: generateUniqueId('D'),
     Nama_Dompet: nama,
     Saldo: saldo
   };
@@ -3587,16 +3945,21 @@ function submitDompet() {
 
   saveDataLocally();
   renderAllViews();
-  closeModal('modalDompet');
+  pushToSpreadsheet('append_row', 'Dompet', newWallet);
+
   document.getElementById('dompetNama').value = '';
   document.getElementById('dompetSaldo').value = '0';
 
-  showToast('Dompet baru berhasil ditambahkan! 💳', 'success');
-  pushToSpreadsheet('append_row', 'Dompet', newWallet);
+  setTimeout(() => {
+    resetButtonLoading(btn, orig);
+    closeModal('modalDompet');
+    showToast('Dompet baru berhasil ditambahkan! 💳', 'success');
+  }, 350);
 }
 
 // Submit Pos Anggaran Baru
-function submitAnggaran() {
+function submitAnggaran(e = null) {
+  const btn = getFormSubmitButton(e, 'modalAnggaran');
   const kategori = document.getElementById('anggaranKategori').value;
   const item = document.getElementById('anggaranItem').value.trim();
   const estimasi = Number(document.getElementById('anggaranEstimasi').value) || 0;
@@ -3609,10 +3972,12 @@ function submitAnggaran() {
     return;
   }
 
+  const orig = setButtonLoading(btn, 'Menyimpan Anggaran...');
+
   const sisa = Math.max(0, biayaRiil - bayar);
 
   const newBudget = {
-    ID_Anggaran: 'A' + Date.now().toString().slice(-4),
+    ID_Anggaran: generateUniqueId('A'),
     Kategori_Anggaran: kategori,
     Item: item,
     Estimasi: estimasi,
@@ -3627,15 +3992,19 @@ function submitAnggaran() {
 
   saveDataLocally();
   renderAllViews();
-  closeModal('modalAnggaran');
+  pushToSpreadsheet('append_row', 'Anggaran', newBudget);
+
   document.getElementById('anggaranItem').value = '';
   document.getElementById('anggaranEstimasi').value = '';
   document.getElementById('anggaranBiayaRiil').value = '';
   document.getElementById('anggaranJumlahBayar').value = '0';
   document.getElementById('anggaranJatuhTempo').value = '';
 
-  showToast('Pos anggaran berhasil ditambahkan! 💰', 'success');
-  pushToSpreadsheet('append_row', 'Anggaran', newBudget);
+  setTimeout(() => {
+    resetButtonLoading(btn, orig);
+    closeModal('modalAnggaran');
+    showToast('Pos anggaran berhasil ditambahkan! 💰', 'success');
+  }, 350);
 }
 
 // ============================================================================
