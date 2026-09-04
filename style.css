@@ -1963,6 +1963,7 @@ body {
   justify-content: center;
   cursor: pointer;
   position: relative;
+  z-index: 5;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -2002,6 +2003,7 @@ body {
   width: 100%;
   height: 100%;
   pointer-events: none;
+  z-index: 20;
 }
 
 .blossom-item {
@@ -2025,12 +2027,16 @@ body {
   cursor: pointer;
   pointer-events: none;
   transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 2;
 }
 
-.blossom-item:hover {
+.blossom-item:hover,
+.blossom-item:focus,
+.blossom-item:active {
   background: var(--primary-light);
   color: var(--primary);
   transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1.12) !important;
+  z-index: 999 !important;
 }
 
 .blossom-item .blossom-tooltip {
@@ -2038,10 +2044,11 @@ body {
   white-space: nowrap;
   font-size: 10.5px;
   font-weight: 700;
-  background: rgba(39, 51, 44, 0.92);
+  background: rgba(39, 51, 44, 0.94);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: #FFF;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: var(--radius-full);
   pointer-events: none;
   opacity: 0;
@@ -2049,11 +2056,15 @@ body {
   top: 100%;
   left: 50%;
   transform: translateX(-50%) translateY(4px);
-  z-index: 10;
+  z-index: 1000 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 
-.blossom-item:hover .blossom-tooltip {
+.blossom-item:hover .blossom-tooltip,
+.blossom-item:focus .blossom-tooltip,
+.blossom-item:active .blossom-tooltip {
   opacity: 1;
+  z-index: 1000 !important;
 }
 
 /* When Blossom Menu is Active (Presisi Simetris Sempurna) */
