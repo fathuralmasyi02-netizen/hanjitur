@@ -22,7 +22,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
   
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=3.2">
+  <link rel="stylesheet" href="style.css?v=3.3">
   
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -215,12 +215,12 @@
                   <button type="button" class="btn-add-wallet-pill" onclick="event.stopPropagation(); openModal('modalDompet');" title="Tambah Dompet">
                     <i data-lucide="plus" style="width: 12px; height: 12px;"></i> Tambah
                   </button>
-                  <div class="accordion-arrow rotated" id="walletAccordionArrow">
+                  <div class="accordion-arrow" id="walletAccordionArrow">
                     <i data-lucide="chevron-down" style="width: 18px; height: 18px;"></i>
                   </div>
                 </div>
               </div>
-              <div class="wallet-accordion-body" id="walletAccordionBody">
+              <div class="wallet-accordion-body" id="walletAccordionBody" style="display: none;">
                 <div class="card-list" id="walletList"></div>
               </div>
             </div>
@@ -2163,6 +2163,6 @@
   </div>
 
   <!-- JavaScript Application File -->
-  <script src="app.js?v=3.2"></script>
+  <script src="app.js?v=3.3"></script>
 </body>
 </html>
