@@ -1500,6 +1500,119 @@ function openAnggaranDetail(id) {
   openModal('modalAnggaranDetail');
 }
 
+function populateAnggaranCategoryOptions() {
+  const select = document.getElementById('anggaranKategori');
+  const datalist = document.getElementById('anggaranKategoriDataList');
+  if (!select) return;
+
+  const defaultCats = [
+    { value: 'Venue', label: 'Venue / Gedung' },
+    { value: 'Catering', label: 'Catering' },
+    { value: 'Dekorasi', label: 'Dekorasi' },
+    { value: 'MUA & Busana', label: 'MUA & Busana' },
+    { value: 'Dokumentasi', label: 'Dokumentasi & Video' },
+    { value: 'Undangan & Souvenir', label: 'Undangan & Souvenir' },
+    { value: 'Musik & MC', label: 'Musik, Entertainment & MC' },
+    { value: 'KUA & Administrasi', label: 'KUA & Administrasi' },
+    { value: 'Lain-lain', label: 'Lain-lain / Cadangan' }
+  ];
+
+  const defaultValues = new Set(defaultCats.map(c => c.value));
+  const masterCats = (weddingData.Master && Array.isArray(weddingData.Master.KategoriVendor)) ? weddingData.Master.KategoriVendor : [];
+  const existingCats = (weddingData.Anggaran || []).map(a => a.Kategori_Anggaran).filter(Boolean);
+  const customCats = Array.from(new Set([...masterCats, ...existingCats].filter(c => !defaultValues.has(c))));
+
+  let html = defaultCats.map(c => `<option value="${c.value}">${c.label}</option>`).join('');
+  if (customCats.length > 0) {
+    html += customCats.map(c => `<option value="${c}">${c}</option>`).join('');
+  }
+  html += `<option value="__custom__">+ Ketik Kategori Kustom / Lainnya...</option>`;
+  select.innerHTML = html;
+
+  if (datalist) {
+    const allUnique = Array.from(new Set([...defaultCats.map(c => c.value), ...customCats]));
+    datalist.innerHTML = allUnique.map(c => `<option value="${c}">`).join('');
+  }
+}
+
+function onAnggaranKategoriChange() {
+  const select = document.getElementById('anggaranKategori');
+  const customWrap = document.getElementById('anggaranKategoriCustomWrap');
+  const customInput = document.getElementById('anggaranKategoriCustom');
+  const toggleBtn = document.getElementById('anggaranKategoriToggleBtn');
+  if (!select || !customWrap) return;
+
+  if (select.value === '__custom__') {
+    customWrap.style.display = 'block';
+    if (toggleBtn) toggleBtn.innerText = 'Pilih Dropdown';
+    if (customInput) customInput.focus();
+  } else {
+    customWrap.style.display = 'none';
+    if (toggleBtn) toggleBtn.innerText = '+ Ketik Manual';
+  }
+}
+
+function toggleAnggaranKategoriMode(forceManual = null) {
+  const customWrap = document.getElementById('anggaranKategoriCustomWrap');
+  const toggleBtn = document.getElementById('anggaranKategoriToggleBtn');
+  const select = document.getElementById('anggaranKategori');
+  const customInput = document.getElementById('anggaranKategoriCustom');
+  if (!customWrap) return;
+
+  const isCurrentlyManual = customWrap.style.display !== 'none';
+  const shouldBeManual = forceManual !== null ? forceManual : !isCurrentlyManual;
+
+  if (shouldBeManual) {
+    customWrap.style.display = 'block';
+    if (select) select.value = '__custom__';
+    if (toggleBtn) toggleBtn.innerText = 'Pilih Dropdown';
+    if (customInput) customInput.focus();
+  } else {
+    customWrap.style.display = 'none';
+    if (select && select.value === '__custom__') select.value = 'Venue';
+    if (toggleBtn) toggleBtn.innerText = '+ Ketik Manual';
+  }
+}
+
+function onEditAnggaranKategoriChange() {
+  const select = document.getElementById('editAnggaranKategori');
+  const customWrap = document.getElementById('editAnggaranKategoriCustomWrap');
+  const customInput = document.getElementById('editAnggaranKategoriCustom');
+  const toggleBtn = document.getElementById('editAnggaranKategoriToggleBtn');
+  if (!select || !customWrap) return;
+
+  if (select.value === '__custom__') {
+    customWrap.style.display = 'block';
+    if (toggleBtn) toggleBtn.innerText = 'Pilih Dropdown';
+    if (customInput) customInput.focus();
+  } else {
+    customWrap.style.display = 'none';
+    if (toggleBtn) toggleBtn.innerText = '+ Ketik Manual';
+  }
+}
+
+function toggleEditAnggaranKategoriMode(forceManual = null) {
+  const customWrap = document.getElementById('editAnggaranKategoriCustomWrap');
+  const toggleBtn = document.getElementById('editAnggaranKategoriToggleBtn');
+  const select = document.getElementById('editAnggaranKategori');
+  const customInput = document.getElementById('editAnggaranKategoriCustom');
+  if (!customWrap) return;
+
+  const isCurrentlyManual = customWrap.style.display !== 'none';
+  const shouldBeManual = forceManual !== null ? forceManual : !isCurrentlyManual;
+
+  if (shouldBeManual) {
+    customWrap.style.display = 'block';
+    if (select) select.value = '__custom__';
+    if (toggleBtn) toggleBtn.innerText = 'Pilih Dropdown';
+    if (customInput) customInput.focus();
+  } else {
+    customWrap.style.display = 'none';
+    if (select && select.value === '__custom__') select.value = 'Venue';
+    if (toggleBtn) toggleBtn.innerText = '+ Ketik Manual';
+  }
+}
+
 function openEditAnggaranModal() {
   closeModal('modalAnggaranDetail');
   const item = (weddingData.Anggaran || []).find(a => a.ID_Anggaran === selectedAnggaranId);
@@ -1511,13 +1624,28 @@ function openEditAnggaranModal() {
 
   // Populate category options
   const catSelect = document.getElementById('editAnggaranKategori');
+  const customWrap = document.getElementById('editAnggaranKategoriCustomWrap');
+  const customInput = document.getElementById('editAnggaranKategoriCustom');
+  const toggleBtn = document.getElementById('editAnggaranKategoriToggleBtn');
+
   if (catSelect) {
     const masterCats = (weddingData.Master && Array.isArray(weddingData.Master.KategoriVendor)) ? weddingData.Master.KategoriVendor : [];
     const existingCats = (weddingData.Anggaran || []).map(a => a.Kategori_Anggaran).filter(Boolean);
     const defaultCats = ['Venue', 'Catering', 'Dekorasi', 'MUA & Busana', 'Dokumentasi', 'Undangan & Souvenir', 'Entertainment', 'Lain-lain'];
     const allCats = Array.from(new Set([...defaultCats, ...masterCats, ...existingCats]));
-    catSelect.innerHTML = allCats.map(c => `<option value="${c}">${c}</option>`).join('');
-    catSelect.value = item.Kategori_Anggaran || 'Lain-lain';
+    catSelect.innerHTML = allCats.map(c => `<option value="${c}">${c}</option>`).join('') + `<option value="__custom__">+ Ketik Kategori Kustom / Lainnya...</option>`;
+
+    if (allCats.includes(item.Kategori_Anggaran)) {
+      catSelect.value = item.Kategori_Anggaran;
+      if (customWrap) customWrap.style.display = 'none';
+      if (toggleBtn) toggleBtn.innerText = '+ Ketik Manual';
+      if (customInput) customInput.value = '';
+    } else {
+      catSelect.value = '__custom__';
+      if (customWrap) customWrap.style.display = 'block';
+      if (customInput) customInput.value = item.Kategori_Anggaran || '';
+      if (toggleBtn) toggleBtn.innerText = 'Pilih Dropdown';
+    }
   }
 
   document.getElementById('editAnggaranItem').value = item.Item || '';
@@ -1535,7 +1663,14 @@ function submitEditAnggaran(e = null) {
   const item = (weddingData.Anggaran || []).find(a => a.ID_Anggaran === selectedAnggaranId);
   if (!item) return;
 
-  const kategori = document.getElementById('editAnggaranKategori').value;
+  let kategori = document.getElementById('editAnggaranKategori').value;
+  const customWrap = document.getElementById('editAnggaranKategoriCustomWrap');
+  const customInput = document.getElementById('editAnggaranKategoriCustom');
+  if (kategori === '__custom__' || (customWrap && customWrap.style.display !== 'none')) {
+    const customVal = customInput ? customInput.value.trim() : '';
+    kategori = customVal || 'Lain-lain';
+  }
+
   const itemName = document.getElementById('editAnggaranItem').value.trim();
   const est = Number(document.getElementById('editAnggaranEstimasi').value) || 0;
   const riil = Number(document.getElementById('editAnggaranBiayaRiil').value) || est;
@@ -3804,6 +3939,10 @@ function openModal(id) {
       const dateInp = document.getElementById('knTanggalMulai');
       if (dateInp && !dateInp.value) dateInp.value = dateStr;
     }
+    if (id === 'modalAnggaran') {
+      populateAnggaranCategoryOptions();
+      toggleAnggaranKategoriMode(false);
+    }
     modal.classList.add('active');
     initLucide();
   }
@@ -4231,7 +4370,14 @@ function submitDompet(e = null) {
 // Submit Pos Anggaran Baru
 function submitAnggaran(e = null) {
   const btn = getFormSubmitButton(e, 'modalAnggaran');
-  const kategori = document.getElementById('anggaranKategori').value;
+  let kategori = document.getElementById('anggaranKategori').value;
+  const customWrap = document.getElementById('anggaranKategoriCustomWrap');
+  const customInput = document.getElementById('anggaranKategoriCustom');
+  if (kategori === '__custom__' || (customWrap && customWrap.style.display !== 'none')) {
+    const customVal = customInput ? customInput.value.trim() : '';
+    kategori = customVal || 'Lain-lain';
+  }
+
   const item = document.getElementById('anggaranItem').value.trim();
   const estimasi = Number(document.getElementById('anggaranEstimasi').value) || 0;
   const biayaRiil = Number(document.getElementById('anggaranBiayaRiil').value) || estimasi;
@@ -4270,6 +4416,8 @@ function submitAnggaran(e = null) {
   document.getElementById('anggaranBiayaRiil').value = '';
   document.getElementById('anggaranJumlahBayar').value = '0';
   document.getElementById('anggaranJatuhTempo').value = '';
+  if (customInput) customInput.value = '';
+  toggleAnggaranKategoriMode(false);
 
   setTimeout(() => {
     resetButtonLoading(btn, orig);
