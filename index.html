@@ -22,7 +22,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
   
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=2.9">
+  <link rel="stylesheet" href="style.css?v=3.0">
   
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -49,7 +49,7 @@
     <div class="login-card">
       <h1 class="login-title">Hanjitur Organizer</h1>
 
-      <form id="loginForm" onsubmit="event.preventDefault(); handleLogin();">
+      <form id="loginForm" onsubmit="event.preventDefault(); handleLogin(event);">
         <div class="form-group">
           <label class="form-label">Akun Email</label>
           <input type="email" id="loginEmail" class="input-glass" required autocomplete="email" placeholder="nama@email.com">
@@ -87,10 +87,10 @@
         <h1 class="brand-title">Hanjitur Organizer</h1>
       </div>
       <div class="header-actions">
-        <div class="status-pill" id="syncStatusPill" onclick="triggerQuickSync()" title="Klik untuk sinkronkan data sekarang" style="cursor: pointer;">
-          <span class="status-dot"></span>
-          <span id="syncStatusText">Live Sheet</span>
-        </div>
+        <!-- Tombol Reload Berputar (Icon Saja untuk Refresh Data) -->
+        <button class="btn-icon header-reload-btn" id="syncReloadBtn" onclick="triggerQuickSync()" title="Segarkan & Sinkronkan Data">
+          <i data-lucide="rotate-cw" id="syncReloadIcon" style="width: 19px; height: 19px;"></i>
+        </button>
         <button class="btn-icon" onclick="openSettingsModal()" title="Pengaturan & Sinkronisasi">
           <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
         </button>
@@ -685,7 +685,7 @@
         <button class="btn-close-sheet" onclick="closeModal('modalMasterCategory')">&times;</button>
       </div>
 
-      <form onsubmit="event.preventDefault(); submitMasterCategoryForm();">
+      <form onsubmit="event.preventDefault(); submitMasterCategoryForm(event);">
         <div class="form-group">
           <label class="form-label" id="modalMasterCatLabel">Nama Kategori</label>
           <input type="text" id="masterCategoryInput" class="input-glass" placeholder="Misal: H-6 Bulan, Catering, Keluarga Inti..." required>
@@ -709,7 +709,7 @@
         <button class="btn-close-sheet" onclick="closeModal('modalTransaksi')">&times;</button>
       </div>
 
-      <form onsubmit="event.preventDefault(); submitTransaksi();">
+      <form onsubmit="event.preventDefault(); submitTransaksi(event);">
         <div class="form-group">
           <label class="form-label">Jenis Transaksi</label>
           <select id="txType" class="input-glass" onchange="onTxTypeChange()">
@@ -776,7 +776,7 @@
         <button class="btn-close-sheet" onclick="closeModal('modalTamu')">&times;</button>
       </div>
 
-      <form onsubmit="event.preventDefault(); submitTamu();">
+      <form onsubmit="event.preventDefault(); submitTamu(event);">
         <div class="form-group">
           <label class="form-label">Nama Tamu</label>
           <input type="text" id="tamuNama" class="input-glass" placeholder="Nama Lengkap / Tamu Utama" required>
@@ -829,7 +829,7 @@
         <button class="btn-close-sheet" onclick="closeModal('modalTimeline')">&times;</button>
       </div>
 
-      <form onsubmit="event.preventDefault(); submitTimeline();">
+      <form onsubmit="event.preventDefault(); submitTimeline(event);">
         <div class="form-group">
           <label class="form-label">Kategori</label>
           <select id="tlKategori" class="input-glass"></select>
@@ -868,7 +868,7 @@
         <button class="btn-close-sheet" onclick="closeModal('modalVendor')">&times;</button>
       </div>
 
-      <form onsubmit="event.preventDefault(); submitVendor();">
+      <form onsubmit="event.preventDefault(); submitVendor(event);">
         <div class="form-group">
           <label class="form-label">Nama Vendor & Product</label>
           <input type="text" id="vendorNama" class="input-glass" placeholder="Misal: Mahligai Wedding Decor" required>
@@ -933,7 +933,7 @@
         <button class="btn-close-sheet" onclick="closeModal('modalRundown')">&times;</button>
       </div>
 
-      <form onsubmit="event.preventDefault(); submitRundown();">
+      <form onsubmit="event.preventDefault(); submitRundown(event);">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
           <div class="form-group">
             <label class="form-label">Waktu Mulai</label>
@@ -983,7 +983,7 @@
         <button class="btn-close-sheet" onclick="closeModal('modalDompet')">&times;</button>
       </div>
 
-      <form onsubmit="event.preventDefault(); submitDompet();">
+      <form onsubmit="event.preventDefault(); submitDompet(event);">
         <div class="form-group">
           <label class="form-label">Nama Dompet / Rekening</label>
           <input type="text" id="dompetNama" class="input-glass" placeholder="Misal: Bank Syariah Indonesia (BSI)" required>
@@ -1012,7 +1012,7 @@
         <button class="btn-close-sheet" onclick="closeModal('modalAnggaran')">&times;</button>
       </div>
 
-      <form onsubmit="event.preventDefault(); submitAnggaran();">
+      <form onsubmit="event.preventDefault(); submitAnggaran(event);">
         <div class="form-group">
           <label class="form-label">Kategori Anggaran</label>
           <select id="anggaranKategori" class="input-glass">
@@ -1131,7 +1131,7 @@
         <button type="button" class="btn-primary" style="flex: 1;" onclick="openEditAnggaranModal()">
           <i data-lucide="edit-2" style="width: 15px; height: 15px;"></i> Edit Data
         </button>
-        <button type="button" class="btn-pill-action" style="color: var(--danger); border-color: rgba(212, 84, 95, 0.4); padding: 12px 18px;" onclick="deleteAnggaranItem()">
+        <button type="button" class="btn-pill-action" style="color: var(--danger); border-color: rgba(212, 84, 95, 0.4); padding: 12px 18px;" onclick="deleteAnggaranItem(event)">
           <i data-lucide="trash-2" style="width: 15px; height: 15px;"></i> Hapus
         </button>
       </div>
@@ -1149,7 +1149,7 @@
         <button class="btn-close-sheet" onclick="closeModal('modalEditAnggaran')">&times;</button>
       </div>
 
-      <form onsubmit="event.preventDefault(); submitEditAnggaran();">
+      <form onsubmit="event.preventDefault(); submitEditAnggaran(event);">
         <div class="form-group">
           <label class="form-label">Kategori Anggaran</label>
           <select id="editAnggaranKategori" class="input-glass" required>
@@ -1228,7 +1228,7 @@
           <i data-lucide="edit-3" style="width: 18px; height: 18px;"></i>
           <span>Edit Dompet</span>
         </button>
-        <button type="button" class="dompet-action-btn danger" onclick="deleteWallet()">
+        <button type="button" class="dompet-action-btn danger" onclick="deleteWallet(event)">
           <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
           <span>Hapus Dompet</span>
         </button>
@@ -1247,7 +1247,7 @@
         <button class="btn-close-sheet" onclick="closeModal('modalEditDompet')">&times;</button>
       </div>
 
-      <form onsubmit="event.preventDefault(); submitEditDompet();">
+      <form onsubmit="event.preventDefault(); submitEditDompet(event);">
         <div class="form-group">
           <label class="form-label">Nama Dompet</label>
           <input type="text" id="editDompetNama" class="input-glass" required>
@@ -1303,7 +1303,7 @@
           <i data-lucide="edit-3" style="width: 18px; height: 18px;"></i>
           <span>Edit Agenda</span>
         </button>
-        <button type="button" class="dompet-action-btn danger" onclick="deleteTimelineItem()">
+        <button type="button" class="dompet-action-btn danger" onclick="deleteTimelineItem(event)">
           <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
           <span>Hapus Agenda</span>
         </button>
@@ -1322,7 +1322,7 @@
         <button class="btn-close-sheet" onclick="closeModal('modalTimelineEdit')">&times;</button>
       </div>
 
-      <form onsubmit="event.preventDefault(); submitEditTimeline();">
+      <form onsubmit="event.preventDefault(); submitEditTimeline(event);">
         <div class="form-group">
           <label class="form-label">Kategori</label>
           <select id="editTlKategori" class="input-glass" required></select>
@@ -1392,7 +1392,7 @@
           <i data-lucide="edit-3" style="width: 18px; height: 18px;"></i>
           <span>Edit Susunan Acara</span>
         </button>
-        <button type="button" class="dompet-action-btn danger" onclick="deleteRundownItem()">
+        <button type="button" class="dompet-action-btn danger" onclick="deleteRundownItem(event)">
           <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
           <span>Hapus Acara</span>
         </button>
@@ -1411,7 +1411,7 @@
         <button class="btn-close-sheet" onclick="closeModal('modalRundownEdit')">&times;</button>
       </div>
 
-      <form onsubmit="event.preventDefault(); submitEditRundown();">
+      <form onsubmit="event.preventDefault(); submitEditRundown(event);">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
           <div class="form-group">
             <label class="form-label">Waktu Mulai</label>
@@ -1514,7 +1514,7 @@
           <i data-lucide="edit-3" style="width: 18px; height: 18px;"></i>
           <span>Edit Vendor & Product</span>
         </button>
-        <button type="button" class="dompet-action-btn danger" onclick="deleteVendorItem()">
+        <button type="button" class="dompet-action-btn danger" onclick="deleteVendorItem(event)">
           <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
           <span>Hapus Vendor & Product</span>
         </button>
@@ -1533,7 +1533,7 @@
         <button class="btn-close-sheet" onclick="closeModal('modalVendorEdit')">&times;</button>
       </div>
 
-      <form onsubmit="event.preventDefault(); submitEditVendor();">
+      <form onsubmit="event.preventDefault(); submitEditVendor(event);">
         <div class="form-group">
           <label class="form-label">Nama Vendor & Product</label>
           <input type="text" id="editVdNama" class="input-glass" required>
@@ -1642,7 +1642,7 @@
           <i data-lucide="edit-3" style="width: 18px; height: 18px;"></i>
           <span>Edit Tamu Undangan</span>
         </button>
-        <button type="button" class="dompet-action-btn danger" onclick="deleteTamuItem()">
+        <button type="button" class="dompet-action-btn danger" onclick="deleteTamuItem(event)">
           <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
           <span>Hapus Tamu Undangan</span>
         </button>
@@ -1661,7 +1661,7 @@
         <button class="btn-close-sheet" onclick="closeModal('modalTamuEdit')">&times;</button>
       </div>
 
-      <form onsubmit="event.preventDefault(); submitEditTamu();">
+      <form onsubmit="event.preventDefault(); submitEditTamu(event);">
         <div class="form-group">
           <label class="form-label">Nama Tamu</label>
           <input type="text" id="editTmNama" class="input-glass" required>
@@ -1714,7 +1714,7 @@
         <button class="btn-close-sheet" onclick="closeModal('modalKnowledge')">&times;</button>
       </div>
 
-      <form onsubmit="event.preventDefault(); submitKnowledge();">
+      <form onsubmit="event.preventDefault(); submitKnowledge(event);">
         <div class="form-group">
           <label class="form-label">Kategori / Bagian</label>
           <input type="text" id="knKategori" class="input-glass" list="knKategoriOptions" placeholder="Misal: Administrasi, Persiapan Fisik..." required>
@@ -1845,7 +1845,7 @@
           <i data-lucide="edit-3" style="width: 18px; height: 18px;"></i>
           <span>Edit Target & Knowledge</span>
         </button>
-        <button type="button" class="dompet-action-btn danger" onclick="deleteKnowledgeItem()">
+        <button type="button" class="dompet-action-btn danger" onclick="deleteKnowledgeItem(event)">
           <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
           <span>Hapus Target & Knowledge</span>
         </button>
@@ -1864,7 +1864,7 @@
         <button class="btn-close-sheet" onclick="closeModal('modalKnowledgeEdit')">&times;</button>
       </div>
 
-      <form onsubmit="event.preventDefault(); submitEditKnowledge();">
+      <form onsubmit="event.preventDefault(); submitEditKnowledge(event);">
         <div class="form-group">
           <label class="form-label">Kategori / Bagian</label>
           <input type="text" id="editKnKategori" class="input-glass" list="knKategoriOptions" required>
@@ -1929,7 +1929,7 @@
         <button class="btn-close-sheet" onclick="closeModal('modalFile')">&times;</button>
       </div>
 
-      <form onsubmit="event.preventDefault(); submitFile();">
+      <form onsubmit="event.preventDefault(); submitFile(event);">
         <div class="form-group">
           <label class="form-label">Nama Berkas / Dokumen</label>
           <input type="text" id="flNama" class="input-glass" placeholder="Misal: Scan KTP & Surat Nikah KUA" required>
@@ -2004,7 +2004,7 @@
           <i data-lucide="edit-3" style="width: 18px; height: 18px;"></i>
           <span>Edit Dokumen / Berkas</span>
         </button>
-        <button type="button" class="dompet-action-btn danger" onclick="deleteFileItem()">
+        <button type="button" class="dompet-action-btn danger" onclick="deleteFileItem(event)">
           <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
           <span>Hapus Dokumen / Berkas</span>
         </button>
@@ -2023,7 +2023,7 @@
         <button class="btn-close-sheet" onclick="closeModal('modalFileEdit')">&times;</button>
       </div>
 
-      <form onsubmit="event.preventDefault(); submitEditFile();">
+      <form onsubmit="event.preventDefault(); submitEditFile(event);">
         <div class="form-group">
           <label class="form-label">Nama Berkas / Dokumen</label>
           <input type="text" id="editFlNama" class="input-glass" required>
@@ -2071,7 +2071,7 @@
         <button class="btn-close-sheet" onclick="closeModal('modalTambahIsian')">&times;</button>
       </div>
 
-      <form onsubmit="event.preventDefault(); submitTambahIsian();">
+      <form onsubmit="event.preventDefault(); submitTambahIsian(event);">
         <div class="form-group">
           <label class="form-label">Kategori Bagian</label>
           <input type="text" id="isianBagian" class="input-glass" list="isianBagianDatalist" placeholder="Misal: Syarat Administrasi, Kontak PIC..." required>
@@ -2117,7 +2117,7 @@
         <button class="btn-close-sheet" onclick="closeModal('modalEditIsian')">&times;</button>
       </div>
 
-      <form onsubmit="event.preventDefault(); submitEditIsian();">
+      <form onsubmit="event.preventDefault(); submitEditIsian(event);">
         <div class="form-group">
           <label class="form-label">Kategori Bagian</label>
           <input type="text" id="editIsianBagian" class="input-glass" list="isianBagianDatalist" required>
@@ -2151,6 +2151,6 @@
   </div>
 
   <!-- JavaScript Application File -->
-  <script src="app.js?v=2.9"></script>
+  <script src="app.js?v=3.0"></script>
 </body>
 </html>
