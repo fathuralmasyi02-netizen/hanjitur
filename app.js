@@ -525,11 +525,10 @@ async function syncFromSpreadsheet(silent = false) {
 
       saveDataLocally();
 
-      // Render ulang jika ada pembaruan data atau klik manual pengguna
-      if (hasChanged || !silent) {
-        renderAllViews();
-        renderMasterCategoryList();
-      }
+      // Selalu render ulang seluruh tampilan begitu data dari Spreadsheet selesai dimuat,
+      // agar data langsung nampak seketika di semua menu tanpa perlu search atau reload manual
+      renderAllViews();
+      renderMasterCategoryList();
 
       updateSyncIndicator(true);
       if (!silent) {
@@ -1106,6 +1105,9 @@ function renderTransactionsList() {
   txHistoryListEl.innerHTML = '';
   const txList = weddingData.Transaksi_Keuangan || [];
 
+  const searchInput = document.getElementById('txSearchInput');
+  currentTxSearchQuery = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
   let filtered = txList.slice().reverse();
 
   if (currentTxTypeFilter === 'masuk') {
@@ -1159,7 +1161,18 @@ function renderTransactionsList() {
   initLucide();
 }
 
+let currentAnggaranSearch = '';
+
+function filterAnggaranSearch() {
+  const searchInput = document.getElementById('anggaranSearchInput');
+  currentAnggaranSearch = searchInput ? searchInput.value.toLowerCase().trim() : '';
+  renderKeuangan();
+}
+
 function toggleBudgetCategory(catName) {
+  if (budgetCategoryState[catName] === undefined) {
+    budgetCategoryState[catName] = true;
+  }
   budgetCategoryState[catName] = !budgetCategoryState[catName];
   const catKey = catName.replace(/[\s&/]/g, '_');
   const body = document.getElementById(`budget-cat-body-${catKey}`);
@@ -1208,9 +1221,11 @@ function renderKeuangan() {
     budgetCategorizedListEl.innerHTML = '';
     const anggaranList = weddingData.Anggaran || [];
 
+    const searchInput = document.getElementById('anggaranSearchInput');
+    currentAnggaranSearch = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
     let totalEst = 0, totalRiil = 0, totalBayar = 0, totalSisa = 0;
 
-    const grouped = {};
     anggaranList.forEach(item => {
       const est = Number(item.Estimasi) || 0;
       const riil = Number(item.Biaya_Riil) || est;
@@ -1221,10 +1236,6 @@ function renderKeuangan() {
       totalRiil += riil;
       totalBayar += bayar;
       totalSisa += sisa;
-
-      const cat = item.Kategori_Anggaran || 'Lain-lain';
-      if (!grouped[cat]) grouped[cat] = [];
-      grouped[cat].push({ ...item, est, riil, bayar, sisa });
     });
 
     const pctAll = totalRiil > 0 ? Math.round((totalBayar / totalRiil) * 100) : 0;
@@ -1240,81 +1251,108 @@ function renderKeuangan() {
     if (pctTextEl) pctTextEl.innerText = `${pctAll}%`;
     if (progBarEl) progBarEl.style.width = `${pctAll}%`;
 
-    Object.keys(grouped).forEach(cat => {
-      const items = grouped[cat];
-      const catKey = cat.replace(/[\s&/]/g, '_');
-      if (budgetCategoryState[cat] === undefined) {
-        budgetCategoryState[cat] = false; // default kategori pos anggaran tertutup
-      }
-      const isOpen = budgetCategoryState[cat];
+    // Filter items berdasarkan pencarian
+    let filteredAnggaran = anggaranList.slice();
+    if (currentAnggaranSearch) {
+      filteredAnggaran = filteredAnggaran.filter(item => 
+        (item.Item || '').toLowerCase().includes(currentAnggaranSearch) ||
+        (item.Kategori_Anggaran || '').toLowerCase().includes(currentAnggaranSearch) ||
+        (item.Jatuh_Tempo || '').toLowerCase().includes(currentAnggaranSearch)
+      );
+    }
 
-      const catSubtotalRiil = items.reduce((a, b) => a + b.riil, 0);
-      const catSubtotalBayar = items.reduce((a, b) => a + b.bayar, 0);
-      const catPct = catSubtotalRiil > 0 ? Math.round((catSubtotalBayar / catSubtotalRiil) * 100) : 0;
+    if (filteredAnggaran.length === 0) {
+      budgetCategorizedListEl.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 24px; font-size: 13px;">${currentAnggaranSearch ? 'Tidak ada pos anggaran yang cocok dengan pencarian.' : 'Belum ada pos anggaran terdaftar.'}</div>`;
+    } else {
+      const grouped = {};
+      filteredAnggaran.forEach(item => {
+        const est = Number(item.Estimasi) || 0;
+        const riil = Number(item.Biaya_Riil) || est;
+        const bayar = Number(item.Jumlah_Dibayar) || 0;
+        const sisa = Math.max(0, riil - bayar);
 
-      const groupDiv = document.createElement('div');
-      groupDiv.className = 'budget-cat-group';
-      groupDiv.innerHTML = `
-        <div class="budget-cat-header" onclick="toggleBudgetCategory('${cat}')">
-          <div class="budget-cat-title-wrap">
-            <span class="budget-cat-name">${cat}</span>
-            <span class="budget-cat-count">${items.length} Item</span>
-          </div>
-          <div class="budget-cat-right">
-            <span class="budget-cat-pct-badge">${catPct}%</span>
-            <div class="accordion-arrow ${isOpen ? 'rotated' : ''}" id="budget-cat-arrow-${catKey}">
-              <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
+        const cat = item.Kategori_Anggaran || 'Lain-lain';
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push({ ...item, est, riil, bayar, sisa });
+      });
+
+      Object.keys(grouped).forEach(cat => {
+        const items = grouped[cat];
+        const catKey = cat.replace(/[\s&/]/g, '_');
+        // Default terbuka (true) agar pos anggaran langsung nampak seketika
+        if (budgetCategoryState[cat] === undefined) {
+          budgetCategoryState[cat] = true;
+        }
+        const isOpen = currentAnggaranSearch ? true : (budgetCategoryState[cat] !== false);
+
+        const catSubtotalRiil = items.reduce((a, b) => a + b.riil, 0);
+        const catSubtotalBayar = items.reduce((a, b) => a + b.bayar, 0);
+        const catPct = catSubtotalRiil > 0 ? Math.round((catSubtotalBayar / catSubtotalRiil) * 100) : 0;
+
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'budget-cat-group';
+        groupDiv.innerHTML = `
+          <div class="budget-cat-header" onclick="toggleBudgetCategory('${cat}')">
+            <div class="budget-cat-title-wrap">
+              <span class="budget-cat-name">${cat}</span>
+              <span class="budget-cat-count">${items.length} Item</span>
+            </div>
+            <div class="budget-cat-right">
+              <span class="budget-cat-pct-badge">${catPct}%</span>
+              <div class="accordion-arrow ${isOpen ? 'rotated' : ''}" id="budget-cat-arrow-${catKey}">
+                <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="budget-cat-items-list" id="budget-cat-body-${catKey}" style="display: ${isOpen ? 'flex' : 'none'};">
-          ${items.map(item => {
-            const pct = item.riil > 0 ? Math.min(100, Math.round((item.bayar / item.riil) * 100)) : 0;
-            return `
-              <div class="glass-card budget-card" onclick="openAnggaranDetail('${item.ID_Anggaran}')" title="Klik untuk lihat rincian pos anggaran">
-                <div class="budget-top">
-                  <div>
-                    <div class="budget-category">${item.Kategori_Anggaran || 'Pos Biaya'}</div>
-                    <div class="budget-item-name">${item.Item}</div>
-                  </div>
-                  <div style="text-align: right;">
-                    <div class="budget-due">
-                      <i data-lucide="calendar" style="width: 11px; height: 11px; display: inline;"></i> ${item.Jatuh_Tempo || '-'}
+          <div class="budget-cat-items-list" id="budget-cat-body-${catKey}" style="display: ${isOpen ? 'flex' : 'none'};">
+            ${items.map(item => {
+              const pct = item.riil > 0 ? Math.min(100, Math.round((item.bayar / item.riil) * 100)) : 0;
+              return `
+                <div class="glass-card budget-card" onclick="openAnggaranDetail('${item.ID_Anggaran}')" title="Klik untuk lihat rincian pos anggaran">
+                  <div class="budget-top">
+                    <div>
+                      <div class="budget-category">${item.Kategori_Anggaran || 'Pos Biaya'}</div>
+                      <div class="budget-item-name">${item.Item}</div>
                     </div>
-                    <div style="font-size: 10.5px; color: var(--primary); margin-top: 3px; font-weight: 700; display: flex; align-items: center; justify-content: flex-end; gap: 2px;">
-                      <span>Detail</span>
-                      <i data-lucide="chevron-right" style="width: 13px; height: 13px;"></i>
+                    <div style="text-align: right;">
+                      <div class="budget-due">
+                        <i data-lucide="calendar" style="width: 11px; height: 11px; display: inline;"></i> ${item.Jatuh_Tempo || '-'}
+                      </div>
+                      <div style="font-size: 10.5px; color: var(--primary); margin-top: 3px; font-weight: 700; display: flex; align-items: center; justify-content: flex-end; gap: 2px;">
+                        <span>Detail</span>
+                        <i data-lucide="chevron-right" style="width: 13px; height: 13px;"></i>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div class="budget-metrics">
-                  <div>
-                    <div class="metric-label">Estimasi</div>
-                    <div class="metric-val">${formatRupiah(item.est)}</div>
+                  <div class="budget-metrics">
+                    <div>
+                      <div class="metric-label">Estimasi</div>
+                      <div class="metric-val">${formatRupiah(item.est)}</div>
+                    </div>
+                    <div>
+                      <div class="metric-label">Terbayar</div>
+                      <div class="metric-val" style="color: var(--success);">${formatRupiah(item.bayar)}</div>
+                    </div>
+                    <div>
+                      <div class="metric-label">Sisa</div>
+                      <div class="metric-val" style="color: var(--danger);">${formatRupiah(item.sisa)}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div class="metric-label">Terbayar</div>
-                    <div class="metric-val" style="color: var(--success);">${formatRupiah(item.bayar)}</div>
+                  <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; color: var(--text-muted);">
+                    <span>Progres Pembayaran</span>
+                    <span style="font-weight: 700; color: var(--primary);">${pct}%</span>
                   </div>
-                  <div>
-                    <div class="metric-label">Sisa</div>
-                    <div class="metric-val" style="color: var(--danger);">${formatRupiah(item.sisa)}</div>
+                  <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" style="width: ${pct}%;"></div>
                   </div>
                 </div>
-                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; color: var(--text-muted);">
-                  <span>Progres Pembayaran</span>
-                  <span style="font-weight: 700; color: var(--primary);">${pct}%</span>
-                </div>
-                <div class="progress-bar-bg">
-                  <div class="progress-bar-fill" style="width: ${pct}%;"></div>
-                </div>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      `;
-      budgetCategorizedListEl.appendChild(groupDiv);
-    });
+              `;
+            }).join('')}
+          </div>
+        `;
+        budgetCategorizedListEl.appendChild(groupDiv);
+      });
+    }
   }
   initLucide();
 }
@@ -1521,6 +1559,11 @@ function renderTimeline() {
   timelineListEl.innerHTML = '';
   let items = (weddingData.Timeline || []).slice();
 
+  const searchInput = document.getElementById('tlSearchInput');
+  const dateInput = document.getElementById('tlDateInput');
+  currentTimelineSearch = searchInput ? searchInput.value.toLowerCase().trim() : '';
+  currentTimelineDateFilter = dateInput ? dateInput.value : '';
+
   // Sort by nearest upcoming deadline
   items.sort((a, b) => {
     const timeA = a.Deadline ? new Date(a.Deadline).getTime() : Infinity;
@@ -1696,19 +1739,41 @@ function deleteTimelineItem(e = null) {
 // ----------------------------------------------------------------------------
 // D. Render Rundown Hari H (Sheet Baru)
 // ----------------------------------------------------------------------------
+let currentRundownSearch = '';
+
+function filterRundownSearch() {
+  const searchInput = document.getElementById('rdSearchInput');
+  currentRundownSearch = searchInput ? searchInput.value.toLowerCase().trim() : '';
+  renderRundown();
+}
+
 function renderRundown() {
   const rundownListEl = document.getElementById('rundownList');
   if (!rundownListEl) return;
   rundownListEl.innerHTML = '';
   const rundowns = weddingData.Rundown_Hari_H || [];
 
-  if (rundowns.length === 0) {
-    rundownListEl.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 24px; font-size: 13px;">Belum ada susunan acara Hari H.</div>`;
+  const searchInput = document.getElementById('rdSearchInput');
+  currentRundownSearch = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+  // Filter berdasarkan pencarian kegiatan, PIC, lokasi, atau catatan
+  let filteredRundowns = rundowns.slice();
+  if (currentRundownSearch) {
+    filteredRundowns = filteredRundowns.filter(r => 
+      (r.Kegiatan || '').toLowerCase().includes(currentRundownSearch) ||
+      (r.PIC || '').toLowerCase().includes(currentRundownSearch) ||
+      (r.Lokasi || '').toLowerCase().includes(currentRundownSearch) ||
+      (r.Catatan || '').toLowerCase().includes(currentRundownSearch)
+    );
+  }
+
+  if (filteredRundowns.length === 0) {
+    rundownListEl.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 24px; font-size: 13px;">${currentRundownSearch ? 'Tidak ada kegiatan rundown yang cocok dengan pencarian.' : 'Belum ada susunan acara Hari H.'}</div>`;
     return;
   }
 
   // Sort by start time if possible
-  const sortedRundowns = rundowns.slice().sort((a, b) => (a.Waktu_Mulai || '').localeCompare(b.Waktu_Mulai || ''));
+  const sortedRundowns = filteredRundowns.sort((a, b) => (a.Waktu_Mulai || '').localeCompare(b.Waktu_Mulai || ''));
 
   sortedRundowns.forEach(r => {
     const card = document.createElement('div');
@@ -1869,6 +1934,9 @@ function filterVendorSearch() {
 }
 
 function toggleVendorCategory(cat) {
+  if (vendorCategoryState[cat] === undefined) {
+    vendorCategoryState[cat] = true;
+  }
   vendorCategoryState[cat] = !vendorCategoryState[cat];
   const catKey = cat.replace(/[\s&/]/g, '_');
   const body = document.getElementById(`vendor-cat-body-${catKey}`);
@@ -1913,6 +1981,9 @@ function renderVendor() {
   if (!vendorListEl) return;
   vendorListEl.innerHTML = '';
   const vendors = weddingData.Vendor || [];
+
+  const searchInput = document.getElementById('vdSearchInput');
+  currentVendorSearch = searchInput ? searchInput.value.toLowerCase().trim() : '';
 
   if (vendors.length === 0) {
     vendorListEl.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 24px; font-size: 13px;">Belum ada vendor & product terdaftar.</div>`;
@@ -1960,11 +2031,11 @@ function renderVendor() {
     const items = grouped[cat];
     const catKey = cat.replace(/[\s&/]/g, '_');
     
-    // Default tertutup (false) unless user opened it or actively searching/filtering
+    // Default terbuka (true) agar seluruh vendor langsung nampak
     if (vendorCategoryState[cat] === undefined) {
-      vendorCategoryState[cat] = false; // default tertutup
+      vendorCategoryState[cat] = true;
     }
-    const isOpen = isFiltering ? true : !!vendorCategoryState[cat];
+    const isOpen = isFiltering ? true : (vendorCategoryState[cat] !== false);
 
     const groupDiv = document.createElement('div');
     groupDiv.className = 'vendor-cat-group';
@@ -2297,6 +2368,9 @@ function renderTamu() {
   guestListEl.innerHTML = '';
   const guests = weddingData.Tamu_Undangan || [];
 
+  const input = document.getElementById('searchTamuInput');
+  currentTamuSearch = input ? input.value.toLowerCase().trim() : '';
+
   let total = guests.length;
   let totalPax = 0;
   let hadir = 0, pending = 0, batal = 0;
@@ -2573,6 +2647,9 @@ let selectedFileId = null;
 let currentFilesSearch = '';
 
 function toggleKnowledgeCategory(cat) {
+  if (knowledgeCategoryState[cat] === undefined) {
+    knowledgeCategoryState[cat] = true;
+  }
   knowledgeCategoryState[cat] = !knowledgeCategoryState[cat];
   const catKey = cat.replace(/[\s&/]/g, '_');
   const body = document.getElementById(`kn-cat-body-${catKey}`);
@@ -2597,6 +2674,12 @@ function filterFiles() {
 }
 
 function renderKnowledgeAndFiles() {
+  const searchKnInput = document.getElementById('searchKnowledgeInput');
+  currentKnowledgeSearch = searchKnInput ? searchKnInput.value.toLowerCase().trim() : '';
+
+  const searchFilesInput = document.getElementById('searchFilesInput');
+  currentFilesSearch = searchFilesInput ? searchFilesInput.value.toLowerCase().trim() : '';
+
   const knowledgeListEl = document.getElementById('knowledgeList');
   if (knowledgeListEl) {
     knowledgeListEl.innerHTML = '';
@@ -2627,11 +2710,11 @@ function renderKnowledgeAndFiles() {
         const items = grouped[cat];
         const catKey = cat.replace(/[\s&/]/g, '_');
 
-        // Default tertutup (false), kecuali saat mencari maka otomatis terbuka
+        // Default terbuka (true) agar target progres langsung nampak seketika
         if (knowledgeCategoryState[cat] === undefined) {
-          knowledgeCategoryState[cat] = false;
+          knowledgeCategoryState[cat] = true;
         }
-        const isOpen = currentKnowledgeSearch ? true : knowledgeCategoryState[cat];
+        const isOpen = currentKnowledgeSearch ? true : (knowledgeCategoryState[cat] !== false);
 
         const groupDiv = document.createElement('div');
         groupDiv.className = 'knowledge-cat-group';
@@ -3119,6 +3202,9 @@ function renderIsianKnowledge() {
   const k = (weddingData.Knowledge || []).find(item => item.ID_Knowledge === activeIsianKnowledgeId);
   if (!k) return;
 
+  const searchInput = document.getElementById('searchIsianInput');
+  currentIsianSearchQuery = searchInput ? searchInput.value.trim() : '';
+
   const targetVal = Number(k.Target) || 100;
   const currentVal = Number(k.Progres_Saat_Ini) || 0;
   const pct = Math.min(100, Math.round((currentVal / targetVal) * 100)) || k.Persentase || 0;
@@ -3252,7 +3338,10 @@ function renderIsianKnowledge() {
 }
 
 function toggleIsianCategory(catKey) {
-  isianCategoryState[catKey] = !(isianCategoryState[catKey] !== false);
+  if (isianCategoryState[catKey] === undefined) {
+    isianCategoryState[catKey] = true;
+  }
+  isianCategoryState[catKey] = !isianCategoryState[catKey];
   const body = document.getElementById(`isian-body-${catKey}`);
   const arrow = document.getElementById(`isian-arrow-${catKey}`);
   if (body) body.style.display = isianCategoryState[catKey] ? 'flex' : 'none';
@@ -3480,6 +3569,15 @@ function switchTab(tabName) {
   const targetPane = document.getElementById(`tab-${tabName}`);
   if (targetPane) targetPane.classList.add('active');
 
+  // Trigger render spesifik seketika agar data dari Spreadsheet langsung nampak
+  if (tabName === 'dashboard') renderDashboard();
+  else if (tabName === 'keuangan') renderKeuangan();
+  else if (tabName === 'timeline') renderTimeline();
+  else if (tabName === 'rundown') renderRundown();
+  else if (tabName === 'vendor') renderVendor();
+  else if (tabName === 'tamu') renderTamu();
+  else if (tabName === 'knowledge') renderKnowledgeAndFiles();
+
   window.scrollTo({ top: 0, behavior: 'smooth' });
   initLucide();
 }
@@ -3494,6 +3592,7 @@ function switchKeuanganSubtab(subtab) {
     btns[0].classList.toggle('active', isTx);
     btns[1].classList.toggle('active', !isTx);
   }
+  renderKeuangan();
   initLucide();
 }
 
@@ -3507,6 +3606,7 @@ function switchKnowledgeSubtab(subtab) {
     btns[0].classList.toggle('active', isKnowledge);
     btns[1].classList.toggle('active', !isKnowledge);
   }
+  renderKnowledgeAndFiles();
   initLucide();
 }
 
