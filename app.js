@@ -193,6 +193,25 @@ function initBlossomMenu() {
       shiftBlossomToCenter();
     }
   });
+
+  // Pastikan saat nama menu muncul/disentuh, layernya langsung melompat ke posisi teratas (di atas semua menu)
+  const petalItems = wrapper.querySelectorAll('.blossom-item');
+  petalItems.forEach(item => {
+    item.addEventListener('mouseenter', () => {
+      petalItems.forEach(p => p.style.zIndex = '2');
+      item.style.zIndex = '999';
+    });
+    item.addEventListener('mouseleave', () => {
+      item.style.zIndex = '';
+    });
+    item.addEventListener('touchstart', () => {
+      petalItems.forEach(p => p.style.zIndex = '2');
+      item.style.zIndex = '999';
+    }, { passive: true });
+    item.addEventListener('touchend', () => {
+      setTimeout(() => { item.style.zIndex = ''; }, 400);
+    });
+  });
 }
 
 function shiftBlossomToCenter() {
