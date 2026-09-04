@@ -22,7 +22,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
   
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=3.4">
+  <link rel="stylesheet" href="style.css?v=3.5">
   
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -1026,18 +1026,51 @@
 
       <form onsubmit="event.preventDefault(); submitAnggaran(event);">
         <div class="form-group">
-          <label class="form-label">Kategori Anggaran</label>
-          <select id="anggaranKategori" class="input-glass">
-            <option value="Venue">Venue / Gedung</option>
-            <option value="Catering">Catering</option>
-            <option value="Dekorasi">Dekorasi</option>
-            <option value="MUA & Busana">MUA & Busana</option>
-            <option value="Dokumentasi">Dokumentasi & Video</option>
-            <option value="Undangan & Souvenir">Undangan & Souvenir</option>
-            <option value="Musik & MC">Musik, Entertainment & MC</option>
-            <option value="KUA & Administrasi">KUA & Administrasi</option>
-            <option value="Lain-lain">Lain-lain / Cadangan</option>
-          </select>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="form-label" style="margin-bottom: 0;">Kategori Anggaran</label>
+            <span id="anggaranKategoriToggleBtn" onclick="toggleAnggaranKategoriMode()" style="font-size: 11.5px; color: var(--primary); cursor: pointer; font-weight: 600; text-decoration: underline;">
+              + Ketik Manual
+            </span>
+          </div>
+
+          <!-- Dropdown Pilihan Kategori -->
+          <div id="anggaranKategoriSelectWrap">
+            <select id="anggaranKategori" class="input-glass" onchange="onAnggaranKategoriChange()">
+              <option value="Venue">Venue / Gedung</option>
+              <option value="Catering">Catering</option>
+              <option value="Dekorasi">Dekorasi</option>
+              <option value="MUA & Busana">MUA & Busana</option>
+              <option value="Dokumentasi">Dokumentasi & Video</option>
+              <option value="Undangan & Souvenir">Undangan & Souvenir</option>
+              <option value="Musik & MC">Musik, Entertainment & MC</option>
+              <option value="KUA & Administrasi">KUA & Administrasi</option>
+              <option value="Lain-lain">Lain-lain / Cadangan</option>
+              <option value="__custom__">+ Ketik Kategori Kustom / Lainnya...</option>
+            </select>
+          </div>
+
+          <!-- Input Ketik Manual Kustom -->
+          <div id="anggaranKategoriCustomWrap" style="display: none; margin-top: 6px;">
+            <div style="position: relative;">
+              <input type="text" id="anggaranKategoriCustom" list="anggaranKategoriDataList" class="input-glass" placeholder="Ketik nama kategori kustom (misal: Seserahan, Hantaran, dll)..." autocomplete="off">
+              <datalist id="anggaranKategoriDataList">
+                <option value="Venue">
+                <option value="Catering">
+                <option value="Dekorasi">
+                <option value="MUA & Busana">
+                <option value="Dokumentasi">
+                <option value="Undangan & Souvenir">
+                <option value="Musik & MC">
+                <option value="KUA & Administrasi">
+                <option value="Seserahan & Hantaran">
+                <option value="Lain-lain">
+              </datalist>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+              💡 Tulis kategori baru atau klik 
+              <span onclick="toggleAnggaranKategoriMode(false)" style="color: var(--primary); cursor: pointer; text-decoration: underline; font-weight: 600;">pilih dropdown</span>
+            </div>
+          </div>
         </div>
 
         <div class="form-group">
@@ -1163,17 +1196,20 @@
 
       <form onsubmit="event.preventDefault(); submitEditAnggaran(event);">
         <div class="form-group">
-          <label class="form-label">Kategori Anggaran</label>
-          <select id="editAnggaranKategori" class="input-glass" required>
-            <option value="Venue">Venue</option>
-            <option value="Catering">Catering</option>
-            <option value="Dekorasi">Dekorasi</option>
-            <option value="MUA & Busana">MUA & Busana</option>
-            <option value="Dokumentasi">Dokumentasi</option>
-            <option value="Undangan & Souvenir">Undangan & Souvenir</option>
-            <option value="Entertainment">Entertainment</option>
-            <option value="Lain-lain">Lain-lain</option>
-          </select>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="form-label" style="margin-bottom: 0;">Kategori Anggaran</label>
+            <span id="editAnggaranKategoriToggleBtn" onclick="toggleEditAnggaranKategoriMode()" style="font-size: 11.5px; color: var(--primary); cursor: pointer; font-weight: 600; text-decoration: underline;">
+              + Ketik Manual
+            </span>
+          </div>
+          <div id="editAnggaranKategoriSelectWrap">
+            <select id="editAnggaranKategori" class="input-glass" onchange="onEditAnggaranKategoriChange()" required>
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+          <div id="editAnggaranKategoriCustomWrap" style="display: none; margin-top: 6px;">
+            <input type="text" id="editAnggaranKategoriCustom" list="anggaranKategoriDataList" class="input-glass" placeholder="Ketik nama kategori kustom (misal: Seserahan, Hantaran, dll)..." autocomplete="off">
+          </div>
         </div>
 
         <div class="form-group">
@@ -2163,6 +2199,6 @@
   </div>
 
   <!-- JavaScript Application File -->
-  <script src="app.js?v=3.4"></script>
+  <script src="app.js?v=3.5"></script>
 </body>
 </html>
